@@ -1,3 +1,5 @@
+pub mod textgen;
+
 use std::io::{stdout, StdinLock, Stdout, Write};
 
 use termion::{
@@ -14,7 +16,7 @@ pub struct Toipe {
 
 #[derive(Debug)]
 pub struct ToipeError {
-    msg: String,
+    pub msg: String,
 }
 
 impl From<std::io::Error> for ToipeError {

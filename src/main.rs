@@ -3,7 +3,6 @@ extern crate termion;
 use std::io::stdin;
 use toipe::Toipe;
 
-
 fn main() {
     let mut toipe = Toipe::new();
 
