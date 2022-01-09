@@ -4,10 +4,16 @@ use std::io::stdin;
 use toipe::Toipe;
 
 fn main() {
-    let toipe = Toipe::new().unwrap();
+    let mut toipe = Toipe::new().unwrap();
 
     let stdin = stdin();
-    let stdin = stdin.lock();
 
-    toipe.test(stdin).unwrap();
+    loop {
+        let stdin = stdin.lock();
+        if let Ok((true, _)) = toipe.test(stdin) {
+            toipe.restart().unwrap();
+        } else {
+            break;
+        }
+    }
 }
