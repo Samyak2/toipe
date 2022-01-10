@@ -167,4 +167,11 @@ impl WordSelector {
 
         Ok(word)
     }
+
+    pub fn new_words(&self, num_words: usize) -> Result<Vec<String>, io::Error> {
+        (0..num_words)
+            .into_iter()
+            .map(|_| self.new_word())
+            .collect()
+    }
 }

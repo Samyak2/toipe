@@ -16,6 +16,8 @@ use textgen::WordSelector;
 pub struct Toipe {
     stdout: RawTerminal<Stdout>,
     text: String,
+    words: Vec<String>,
+    word_selector: WordSelector,
 }
 
 #[derive(Debug)]
@@ -35,9 +37,13 @@ impl<'a> Toipe {
     pub fn new() -> Result<Self, ToipeError> {
         let stdout = stdout().into_raw_mode().unwrap();
 
+        let word_selector = WordSelector::default();
+
         let mut toipe = Toipe {
             stdout,
             text: "".to_string(),
+            words: Vec::new(),
+            word_selector,
         };
 
         toipe.restart()?;
@@ -48,7 +54,10 @@ impl<'a> Toipe {
     pub fn restart(&mut self) -> Result<(), ToipeError> {
         self.reset_screen()?;
 
-        self.gen_words()?;
+        self.words = self.word_selector.new_words(10)?;
+        self.text = self.words.join(" ");
+
+        self.show_words()?;
 
         Ok(())
     }
@@ -68,15 +77,7 @@ impl<'a> Toipe {
         Ok(())
     }
 
-    fn gen_words(&mut self) -> Result<(), ToipeError> {
-        let word_selector = WordSelector::default();
-        let words: Result<Vec<String>, _> = (0..10)
-            .into_iter()
-            .map(|_| word_selector.new_word())
-            .collect();
-
-        self.text = words?.join(" ");
-
+    fn show_words(&mut self) -> Result<(), ToipeError> {
         write!(
             self.stdout,
             "{}{}{}{}{}",
