@@ -71,6 +71,10 @@ impl WordSelector {
 
                 cur_pos += 1;
                 cur_letter = first_char;
+
+                if cur_pos >= 26 {
+                    break;
+                }
             }
         }
 
