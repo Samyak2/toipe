@@ -163,21 +163,25 @@ impl<'a> Toipe {
 
         let mut keys = stdin.keys();
 
+        // read first key
         let key = keys.next().unwrap()?;
-
+        // start the timer
         let started_at = Instant::now();
-
+        // process first key
         let res = process_key(key)?;
 
+        // process other keys if first key wasn't exit
         if res {
             for key in &mut keys {
                 let res = process_key(key?)?;
+                // stop if key was exit (ctrl-c)
                 if !res {
                     break;
                 }
             }
         }
 
+        // stop the timer
         let ended_at = Instant::now();
 
         let results = ToipeResults {
@@ -230,6 +234,7 @@ impl<'a> Toipe {
             results.cpm(),
             color::Fg(color::Reset)
         );
+        // do not consider length of formatting characters
         let zerowidths = format!("{}{}", color::Fg(color::Green), color::Fg(color::Reset));
         write!(
             self.stdout,
@@ -239,11 +244,12 @@ impl<'a> Toipe {
             line,
         )?;
 
+        // no cursor on results page
         write!(self.stdout, "{}", cursor::Hide)?;
         self.flush()?;
 
         let mut to_restart = false;
-
+        // press 'r' to restart
         match keys.next().unwrap()? {
             Key::Char('r') => to_restart = true,
             _ => {}
