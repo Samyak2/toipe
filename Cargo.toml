@@ -6,7 +6,7 @@ readme = "README.md"
 categories = ["command-line-utilities"]
 keywords = ["typing-test", "typing", "wpm"]
 
-version = "0.1.0"
+version = "0.1.1"
 
 edition = "2021"
 
