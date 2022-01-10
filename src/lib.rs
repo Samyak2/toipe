@@ -185,6 +185,7 @@ impl<'a> Toipe {
         let ended_at = Instant::now();
 
         let results = ToipeResults {
+            num_words: self.words.len(),
             num_chars: input.len(),
             num_errors,
             started_at,
@@ -229,9 +230,9 @@ impl<'a> Toipe {
         )?;
 
         let line = format!(
-            "Speed: {}{:.1} cpm{} (characters per minute)",
+            "Speed: {}{:.1} wpm{} (words per minute)",
             color::Fg(color::Green),
-            results.cpm(),
+            results.wpm(),
             color::Fg(color::Reset)
         );
         // do not consider length of formatting characters
@@ -240,6 +241,22 @@ impl<'a> Toipe {
             self.stdout,
             "{}{}{}",
             cursor::Goto(sizex / 2, sizey / 2),
+            cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
+            line,
+        )?;
+
+        let line = format!(
+            "Speed: {}{:.1} cpm{} (characters per minute)",
+            color::Fg(color::Cyan),
+            results.cpm(),
+            color::Fg(color::Reset)
+        );
+        // do not consider length of formatting characters
+        let zerowidths = format!("{}{}", color::Fg(color::Cyan), color::Fg(color::Reset));
+        write!(
+            self.stdout,
+            "{}{}{}",
+            cursor::Goto(sizex / 2, sizey / 2 + 1),
             cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
             line,
         )?;
@@ -278,6 +295,7 @@ impl Drop for Toipe {
 
 #[derive(Clone)]
 pub struct ToipeResults {
+    num_words: usize,
     num_chars: usize,
     num_errors: usize,
     started_at: Instant,
@@ -295,5 +313,9 @@ impl ToipeResults {
 
     pub fn cpm(&self) -> f64 {
         self.num_chars as f64 / (self.duration().as_secs_f64() / 60.0)
+    }
+
+    pub fn wpm(&self) -> f64 {
+        self.num_words as f64 / (self.duration().as_secs_f64() / 60.0)
     }
 }
