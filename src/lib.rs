@@ -1,8 +1,11 @@
+pub mod config;
 pub mod textgen;
 
 use std::io::{stdout, StdinLock, Stdout, Write};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use config::ToipeConfig;
 use termion::input::Keys;
 use termion::{
     clear, color, cursor,
@@ -34,10 +37,10 @@ impl From<std::io::Error> for ToipeError {
 }
 
 impl<'a> Toipe {
-    pub fn new() -> Result<Self, ToipeError> {
+    pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
         let stdout = stdout().into_raw_mode().unwrap();
 
-        let word_selector = WordSelector::default();
+        let word_selector = WordSelector::new(PathBuf::from(config.wordlist_path))?;
 
         let mut toipe = Toipe {
             stdout,

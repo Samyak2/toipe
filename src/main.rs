@@ -1,10 +1,14 @@
 extern crate termion;
 
 use std::io::stdin;
+use clap::StructOpt;
 use toipe::Toipe;
+use toipe::config::ToipeConfig;
 
 fn main() {
-    let mut toipe = Toipe::new().unwrap();
+    let config = ToipeConfig::parse();
+
+    let mut toipe = Toipe::new(config).unwrap();
 
     let stdin = stdin();
 
