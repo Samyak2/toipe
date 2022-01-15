@@ -3,7 +3,10 @@ use clap::Parser;
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct ToipeConfig {
-    /// path to file containing list of words
-    #[clap(short, long, default_value_t = String::from("/usr/share/dict/words"))]
-    pub wordlist_path: String,
+    /// word list name or path to word list file.
+    /// Available word lists:
+    /// top250,
+    /// os
+    #[clap(short, long, default_value_t = String::from("top250"))]
+    pub wordlist: String,
 }

@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Seek, SeekFrom};
+use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
 use std::path::PathBuf;
 
 use rand::Rng;
@@ -10,24 +10,14 @@ use bisection::bisect_right;
 use rand::prelude::ThreadRng;
 
 #[derive(Debug)]
-pub struct WordSelector {
-    word_list_path: PathBuf,
+pub struct RawWordSelector<T> {
+    reader: BufReader<T>,
     letter_pos: [u64; 26],
     letter_lines_sum: [u64; 27],
 }
 
-impl Default for WordSelector {
-    fn default() -> Self {
-        Self::new(PathBuf::from("/usr/share/dict/words")).unwrap()
-    }
-}
-
-impl WordSelector {
-    pub fn new(word_list_path: PathBuf) -> Result<Self, io::Error> {
-        let file = File::open(word_list_path.clone())?;
-
-        let mut reader = BufReader::new(file);
-
+impl<T: Seek + io::Read> RawWordSelector<T> {
+    pub fn new(mut reader: BufReader<T>) -> Result<Self, io::Error> {
         let mut letter_pos = [0u64; 26];
         let mut letter_lines = [0u64; 26];
         let mut num_lines = 0;
@@ -98,7 +88,7 @@ impl WordSelector {
         // println!("{:?}", letter_lines_sum);
 
         let word_selector = Self {
-            word_list_path,
+            reader,
             letter_pos,
             letter_lines_sum,
         };
@@ -107,22 +97,19 @@ impl WordSelector {
     }
 
     fn word_at_letter_offset(
-        &self,
+        &mut self,
         letter_index: usize,
         line_offset: u64,
     ) -> Result<String, io::Error> {
-        let file = File::open(self.word_list_path.clone())?;
-
-        let mut reader = BufReader::new(file);
-
-        reader.seek(SeekFrom::Start(self.letter_pos[letter_index]))?;
+        self.reader
+            .seek(SeekFrom::Start(self.letter_pos[letter_index]))?;
 
         let mut buffer = String::new();
         let mut line_no = 0;
 
         loop {
             buffer.clear();
-            reader.read_line(&mut buffer)?;
+            self.reader.read_line(&mut buffer)?;
 
             if line_no == line_offset {
                 break;
@@ -137,7 +124,7 @@ impl WordSelector {
         Ok(buffer)
     }
 
-    fn new_word_raw(&self, rng: &mut ThreadRng) -> Result<String, io::Error> {
+    fn new_word_raw(&mut self, rng: &mut ThreadRng) -> Result<String, io::Error> {
         let line_index = rng.gen_range(self.letter_lines_sum[0]..self.letter_lines_sum[26]);
         // let line_index = 0;
 
@@ -157,8 +144,40 @@ impl WordSelector {
 
         self.word_at_letter_offset(letter_index, line_offset)
     }
+}
 
-    pub fn new_word(&self) -> Result<String, io::Error> {
+impl RawWordSelector<File> {
+    pub fn from_path(word_list_path: PathBuf) -> Result<Self, io::Error> {
+        let file = File::open(word_list_path.clone())?;
+
+        let reader = BufReader::new(file);
+
+        Ok(Self::new(reader)?)
+    }
+}
+
+impl RawWordSelector<Cursor<String>> {
+    pub fn from_string(word_list: String) -> Result<Self, io::Error> {
+        let cursor = Cursor::new(word_list.clone());
+        let reader = BufReader::new(cursor);
+
+        Ok(RawWordSelector::new(reader)?)
+    }
+}
+
+pub trait WordSelector {
+    fn new_word(&mut self) -> Result<String, io::Error>;
+
+    fn new_words(&mut self, num_words: usize) -> Result<Vec<String>, io::Error> {
+        (0..num_words)
+            .into_iter()
+            .map(|_| self.new_word())
+            .collect()
+    }
+}
+
+impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
+    fn new_word(&mut self) -> Result<String, io::Error> {
         let mut rng = rand::thread_rng();
 
         let mut word = "-".to_string();
@@ -170,12 +189,5 @@ impl WordSelector {
         word.make_ascii_lowercase();
 
         Ok(word)
-    }
-
-    pub fn new_words(&self, num_words: usize) -> Result<Vec<String>, io::Error> {
-        (0..num_words)
-            .into_iter()
-            .map(|_| self.new_word())
-            .collect()
     }
 }

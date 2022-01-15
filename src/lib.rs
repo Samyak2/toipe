@@ -1,5 +1,6 @@
 pub mod config;
 pub mod textgen;
+pub mod wordlists;
 
 use std::io::{stdout, StdinLock, Stdout, Write};
 use std::path::PathBuf;
@@ -14,13 +15,14 @@ use termion::{
     raw::{IntoRawMode, RawTerminal},
     style, terminal_size,
 };
-use textgen::WordSelector;
+use textgen::{RawWordSelector, WordSelector};
+use wordlists::{get_word_list, OS_WORDLIST_PATH};
 
 pub struct Toipe {
     stdout: RawTerminal<Stdout>,
     text: String,
     words: Vec<String>,
-    word_selector: WordSelector,
+    word_selector: Box<dyn WordSelector>,
 }
 
 #[derive(Debug)]
@@ -40,7 +42,14 @@ impl<'a> Toipe {
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
         let stdout = stdout().into_raw_mode().unwrap();
 
-        let word_selector = WordSelector::new(PathBuf::from(config.wordlist_path))?;
+        let word_selector: Box<dyn WordSelector> =
+            if let Some(word_list) = get_word_list(config.wordlist.as_str()) {
+                Box::new(RawWordSelector::from_string(word_list.to_string())?)
+            } else if config.wordlist == "os" {
+                Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
+            } else {
+                Box::new(RawWordSelector::from_path(PathBuf::from(config.wordlist))?)
+            };
 
         let mut toipe = Toipe {
             stdout,

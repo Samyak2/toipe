@@ -1,9 +1,9 @@
 extern crate termion;
 
-use std::io::stdin;
 use clap::StructOpt;
-use toipe::Toipe;
+use std::io::stdin;
 use toipe::config::ToipeConfig;
+use toipe::Toipe;
 
 fn main() {
     let config = ToipeConfig::parse();
