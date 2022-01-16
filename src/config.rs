@@ -1,5 +1,11 @@
+//! Configuration for Toipe.
+//!
+//! Designed for command-line arguments using [`clap`], but can be used
+//! as a library too.
+
 use clap::Parser;
 
+/// Main configuration for Toipe.
 #[derive(Parser)]
 #[clap(author, version, about)]
 pub struct ToipeConfig {

@@ -1,3 +1,6 @@
+//! Utilities for generating/selecting new (random) words for the typing
+//! test.
+
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
 use std::path::PathBuf;
@@ -9,6 +12,50 @@ extern crate bisection;
 use bisection::bisect_right;
 use rand::prelude::ThreadRng;
 
+/// Efficient selector of words from a word list.
+///
+/// The word list is given by a BufReader.
+///
+/// ### Assumptions
+///
+/// The word list is assumed to:
+/// - Have a list of words separated by newline.
+/// - Use only English alphabet and **ASCII**.
+/// - Be **sorted alphabetically**.
+///     - In case-insensitive manner.
+///     - For example, both "Apple" and "apple" must appear before words
+///       started with "b".
+/// - Be a file that is **not modified** while the object is alive.
+/// - Have no empty lines except at the end of the file.
+///
+/// Note: only words between length 2 and 8, inclusive, are considered.
+/// Having no words matching the criteria may lead to an infinite loop.
+///
+/// ### Algorithm
+///
+/// During initialization, the [`RawWordSelector`] iterates through all
+/// the words in the list and builds an index mapping each letter (of
+/// the alphabet) to its byte position in the file and the cumulative
+/// number of words present starting with it.
+///
+/// To select a (pesudo-)random word, a random number between 0
+/// (inclusive) and number of lines (exclusive) is generated. Using
+/// binary search, the index of where this number lies in the cumulative
+/// no. of words list is found. Using this index, the byte offset of the
+/// corresponding letter is found. The file is then read starting from
+/// this byte offset and read line-by-line until the correct word (at
+/// line `number - cumulative num. words` from the starting of this
+/// letter).
+///
+/// ### Time complexity
+///
+/// Initialization: `O(n)`
+///
+/// Selecting a word: `O(1)` (best case) or `O(n)` (worst case)
+///
+/// ### Space complexity
+///
+/// `O(1)` (only needs fixed length arrays).
 #[derive(Debug)]
 pub struct RawWordSelector<T> {
     reader: BufReader<T>,
@@ -17,6 +64,10 @@ pub struct RawWordSelector<T> {
 }
 
 impl<T: Seek + io::Read> RawWordSelector<T> {
+    /// Create from any arbitrary [`BufReader`].
+    ///
+    /// Please ensure that assumptions defined at
+    /// [`RawWordSelector#assumptions`] are valid for the contents.
     pub fn new(mut reader: BufReader<T>) -> Result<Self, io::Error> {
         let mut letter_pos = [0u64; 26];
         let mut letter_lines = [0u64; 26];
@@ -147,6 +198,10 @@ impl<T: Seek + io::Read> RawWordSelector<T> {
 }
 
 impl RawWordSelector<File> {
+    /// Create from a file at a path given by a [`PathBuf`].
+    ///
+    /// Please ensure that assumptions defined at
+    /// [`RawWordSelector#assumptions`] are valid for this file.
     pub fn from_path(word_list_path: PathBuf) -> Result<Self, io::Error> {
         let file = File::open(word_list_path.clone())?;
 
@@ -157,6 +212,10 @@ impl RawWordSelector<File> {
 }
 
 impl RawWordSelector<Cursor<String>> {
+    /// Create from a String representing the word list file.
+    ///
+    /// Please ensure that assumptions defined at
+    /// [`RawWordSelector#assumptions`] are valid for the contents.
     pub fn from_string(word_list: String) -> Result<Self, io::Error> {
         let cursor = Cursor::new(word_list.clone());
         let reader = BufReader::new(cursor);
@@ -165,9 +224,12 @@ impl RawWordSelector<Cursor<String>> {
     }
 }
 
+/// Describes a thing that provides new words.
 pub trait WordSelector {
+    /// Returns a new word.
     fn new_word(&mut self) -> Result<String, io::Error>;
 
+    /// Returns a [`Vec`] containing `num_words` words.
     fn new_words(&mut self, num_words: usize) -> Result<Vec<String>, io::Error> {
         (0..num_words)
             .into_iter()

@@ -1,3 +1,15 @@
+//! Toipe is a terminal-based typing test application.
+//!
+//! Please see the [README](https://github.com/Samyak2/toipe/) for
+//! installation and usage instructions.
+//!
+//! Toipe provides an API to invoke it from another application or
+//! library. This documentation describes the API and algorithms used
+//! internally.
+//!
+//! See [`RawWordSelector`] if you're looking for the word selection
+//! algorithm.
+
 pub mod config;
 pub mod textgen;
 pub mod wordlists;
@@ -18,6 +30,7 @@ use termion::{
 use textgen::{RawWordSelector, WordSelector};
 use wordlists::{get_word_list, OS_WORDLIST_PATH};
 
+/// Typing test terminal UI and logic.
 pub struct Toipe {
     stdout: RawTerminal<Stdout>,
     text: String,
@@ -25,11 +38,18 @@ pub struct Toipe {
     word_selector: Box<dyn WordSelector>,
 }
 
+/// Represents any error caught in Toipe.
 #[derive(Debug)]
 pub struct ToipeError {
     pub msg: String,
 }
 
+/// Converts [`std::io::Error`] to [`ToipeError`].
+///
+/// This keeps only the error message.
+///
+/// TODO: there must be a better way to keep information from the
+/// original error.
 impl From<std::io::Error> for ToipeError {
     fn from(error: std::io::Error) -> Self {
         ToipeError {
@@ -39,6 +59,12 @@ impl From<std::io::Error> for ToipeError {
 }
 
 impl<'a> Toipe {
+    /// Initializes a new typing test on the standard output.
+    ///
+    /// See [`ToipeConfig`] for configuration options.
+    ///
+    /// Puts `stdout` in raw mode and initializes the word selector.
+    /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
         let stdout = stdout().into_raw_mode().unwrap();
 
@@ -63,6 +89,10 @@ impl<'a> Toipe {
         Ok(toipe)
     }
 
+    /// Make the terminal ready for the next typing test.
+    ///
+    /// Clears the screen, generates new words and displays them on the
+    /// UI.
     pub fn restart(&mut self) -> Result<(), ToipeError> {
         self.reset_screen()?;
 
@@ -104,11 +134,18 @@ impl<'a> Toipe {
         Ok(())
     }
 
-    pub fn flush(&mut self) -> Result<(), ToipeError> {
+    fn flush(&mut self) -> Result<(), ToipeError> {
         self.stdout.flush()?;
         Ok(())
     }
 
+    /// Start typing test by monitoring input keys.
+    ///
+    /// Must only be invoked after [`Toipe::restart()`].
+    ///
+    /// If the test completes successfully, returns a boolean indicating
+    /// whether the user wants to do another test and the
+    /// [`ToipeResults`] for this test.
     pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
         let mut input = Vec::<char>::new();
         let text: Vec<char> = self.text.chars().collect();
@@ -292,6 +329,11 @@ impl<'a> Toipe {
 }
 
 impl Drop for Toipe {
+    /// Resets terminal.
+    ///
+    /// Clears screen and sets the cursor to a non-blinking block.
+    ///
+    /// TODO: reset cursor to whatever it was before Toipe was started.
     fn drop(&mut self) {
         write!(
             self.stdout,
@@ -305,6 +347,7 @@ impl Drop for Toipe {
     }
 }
 
+/// Stores stats from a typing test.
 #[derive(Clone)]
 pub struct ToipeResults {
     num_words: usize,
@@ -315,18 +358,32 @@ pub struct ToipeResults {
 }
 
 impl ToipeResults {
-    fn duration(&self) -> Duration {
+    /// Duration of the test.
+    ///
+    /// i.e., the time between the user pressing the first key and them
+    /// typing the last letter.
+    pub fn duration(&self) -> Duration {
         self.ended_at.duration_since(self.started_at)
     }
 
+    /// Percentage of letters that were typed correctly.
+    ///
+    /// TODO: count num_chars as the total number of letters typed, to
+    /// prevent negative accuracy.
     pub fn accuracy(&self) -> f64 {
         1.0 - (self.num_errors as f64 / self.num_chars as f64)
     }
 
+    /// Speed in (correctly typed) characters per minute.
+    ///
+    /// TODO: check for correctly typed characters only
     pub fn cpm(&self) -> f64 {
         self.num_chars as f64 / (self.duration().as_secs_f64() / 60.0)
     }
 
+    /// Speed in (correctly typed) words per minute.
+    ///
+    /// TODO: check for correctly typed words only
     pub fn wpm(&self) -> f64 {
         self.num_words as f64 / (self.duration().as_secs_f64() / 60.0)
     }
