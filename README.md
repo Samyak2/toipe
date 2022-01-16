@@ -2,6 +2,8 @@
 
 A trusty terminal typing tester for the tux.
 
+![A demo of toipe showing a recording of a terminal, running the typing test 3 times and then looping](./images/toipe.gif)
+
 # Usage
 
 ## Install
