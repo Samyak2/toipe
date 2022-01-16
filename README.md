@@ -2,7 +2,7 @@
 
 A trusty terminal typing tester for the tux.
 
-![A demo of toipe showing a recording of a terminal, running the typing test 3 times and then looping](./images/toipe.gif)
+![A demo of toipe showing a recording of a terminal, running the typing test 3 times and then looping](https://raw.githubusercontent.com/Samyak2/toipe/main/images/toipe.gif)
 
 # Usage
 
