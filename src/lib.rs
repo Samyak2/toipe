@@ -150,6 +150,7 @@ impl<'a> Toipe {
         let mut input = Vec::<char>::new();
         let text: Vec<char> = self.text.chars().collect();
         let mut num_errors = 0;
+        let mut num_chars_typed = 0;
 
         let mut process_key = |key: Key| -> Result<bool, ToipeError> {
             match key {
@@ -165,6 +166,8 @@ impl<'a> Toipe {
                     if input.len() >= text.len() {
                         return Ok(false);
                     }
+
+                    num_chars_typed += 1;
 
                     if text[input.len() - 1] == c {
                         write!(
@@ -235,7 +238,8 @@ impl<'a> Toipe {
 
         let results = ToipeResults {
             num_words: self.words.len(),
-            num_chars: input.len(),
+            num_chars_typed,
+            num_chars_text: input.len(),
             num_errors,
             started_at,
             ended_at,
@@ -268,7 +272,7 @@ impl<'a> Toipe {
 
         let line = format!(
             "Mistakes: {} out of {} characters",
-            results.num_errors, results.num_chars
+            results.num_errors, results.num_chars_text
         );
         write!(
             self.stdout,
@@ -351,13 +355,19 @@ impl Drop for Toipe {
 #[derive(Clone)]
 pub struct ToipeResults {
     num_words: usize,
-    num_chars: usize,
+    num_chars_typed: usize,
+    num_chars_text: usize,
     num_errors: usize,
     started_at: Instant,
     ended_at: Instant,
 }
 
 impl ToipeResults {
+    /// Number of correctly typed letters
+    pub fn num_correct_chars(&self) -> usize {
+        self.num_chars_typed - self.num_errors
+    }
+
     /// Duration of the test.
     ///
     /// i.e., the time between the user pressing the first key and them
@@ -367,24 +377,24 @@ impl ToipeResults {
     }
 
     /// Percentage of letters that were typed correctly.
-    ///
-    /// TODO: count num_chars as the total number of letters typed, to
-    /// prevent negative accuracy.
     pub fn accuracy(&self) -> f64 {
-        1.0 - (self.num_errors as f64 / self.num_chars as f64)
+        self.num_correct_chars() as f64 / self.num_chars_typed as f64
     }
 
     /// Speed in (correctly typed) characters per minute.
-    ///
-    /// TODO: check for correctly typed characters only
     pub fn cpm(&self) -> f64 {
-        self.num_chars as f64 / (self.duration().as_secs_f64() / 60.0)
+        self.num_correct_chars() as f64 / (self.duration().as_secs_f64() / 60.0)
     }
 
     /// Speed in (correctly typed) words per minute.
     ///
-    /// TODO: check for correctly typed words only
+    /// Measured as `cpm / (chars per word)` where `chars per word` is
+    /// measured as `(number of chars) / (number of words)`.
+    ///
+    /// Note: this is only an approximation because "correctly typed
+    /// words" is ambiguous when there could be a mistake in only one or
+    /// two letters of a word.
     pub fn wpm(&self) -> f64 {
-        self.num_words as f64 / (self.duration().as_secs_f64() / 60.0)
+        self.cpm() / (self.num_chars_text as f64 / self.num_words as f64)
     }
 }
