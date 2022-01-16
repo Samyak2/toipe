@@ -314,6 +314,31 @@ impl<'a> Toipe {
             line,
         )?;
 
+        let line = format!(
+            "Press {}r{} to restart, {}q{} to quit.",
+            color::Fg(color::Blue),
+            color::Fg(color::Reset),
+            color::Fg(color::Blue),
+            color::Fg(color::Reset)
+        );
+        // do not consider length of formatting characters
+        let zerowidths = format!(
+            "{}{}{}{}",
+            color::Fg(color::Blue),
+            color::Fg(color::Reset),
+            color::Fg(color::Blue),
+            color::Fg(color::Reset)
+        );
+        write!(
+            self.stdout,
+            "{}{}{}{}{}",
+            cursor::Goto(sizex / 2, sizey - 2),
+            cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
+            style::Faint,
+            line,
+            style::NoFaint,
+        )?;
+
         // no cursor on results page
         write!(self.stdout, "{}", cursor::Hide)?;
         self.flush()?;
