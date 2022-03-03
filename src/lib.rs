@@ -59,7 +59,7 @@ impl<'a> Toipe {
     ///
     /// See [`ToipeConfig`] for configuration options.
     ///
-    /// Puts `stdout` in raw mode and initializes the word selector.
+    /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
         let word_selector: Box<dyn WordSelector> =
@@ -155,7 +155,6 @@ impl<'a> Toipe {
                 _ => {}
             }
 
-            // write!(self.stdout, "{:?}", key)?;
             self.tui.flush()?;
 
             Ok(true)
