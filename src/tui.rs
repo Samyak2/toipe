@@ -173,6 +173,30 @@ impl ToipeTui {
         write!(self.stdout, "{}", text)?;
         Ok(())
     }
+
+    pub fn hide_cursor(&mut self) -> MaybeError {
+        write!(self.stdout, "{}", cursor::Hide)?;
+        self.flush()?;
+        Ok(())
+    }
+
+    pub fn show_cursor(&mut self) -> MaybeError {
+        write!(self.stdout, "{}", cursor::Show)?;
+        self.flush()?;
+        Ok(())
+    }
+
+    pub fn replace_text(&mut self, texts: &[Text]) -> MaybeError {
+        let len = texts.length() as u16;
+
+        write!(self.stdout, "{}", cursor::Left(len))?;
+        for text in texts {
+            self.display_raw_text(text)?;
+        }
+        write!(self.stdout, "{}", cursor::Left(len))?;
+
+        Ok(())
+    }
 }
 
 impl Drop for ToipeTui {

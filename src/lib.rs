@@ -15,13 +15,13 @@ pub mod textgen;
 pub mod tui;
 pub mod wordlists;
 
-use std::io::{StdinLock, Write};
+use std::io::StdinLock;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use config::ToipeConfig;
 use termion::input::Keys;
-use termion::{color, cursor, event::Key, input::TermRead, style};
+use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
 use wordlists::{get_word_list, OS_WORDLIST_PATH};
@@ -148,16 +148,8 @@ impl<'a> Toipe {
                 Key::Backspace => {
                     let last_char = input.pop();
                     if let Some(_) = last_char {
-                        // TODO: make this a function in ToipeTui
-                        write!(
-                            self.tui.stdout,
-                            "{}{}{}{}{}",
-                            cursor::Left(1),
-                            style::Faint,
-                            text[input.len()],
-                            style::Reset,
-                            cursor::Left(1),
-                        )?;
+                        self.tui
+                            .replace_text(&[Text::from(text[input.len()]).with_faint()])?;
                     }
                 }
                 _ => {}
@@ -236,9 +228,7 @@ impl<'a> Toipe {
             ],
         ])?;
         // no cursor on results page
-        // TODO: make this a function in ToipeTui
-        write!(self.tui.stdout, "{}", cursor::Hide)?;
-        self.tui.flush()?;
+        self.tui.hide_cursor()?;
 
         let mut to_restart = false;
         // press 'r' to restart
@@ -247,9 +237,7 @@ impl<'a> Toipe {
             _ => {}
         }
 
-        // TODO: make this a function in ToipeTui
-        write!(self.tui.stdout, "{}", cursor::Show)?;
-        self.tui.flush()?;
+        self.tui.show_cursor()?;
 
         Ok(to_restart)
     }
