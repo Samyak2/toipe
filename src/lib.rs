@@ -12,27 +12,23 @@
 
 pub mod config;
 pub mod textgen;
+pub mod tui;
 pub mod wordlists;
 
-use std::io::{stdout, StdinLock, Stdout, Write};
+use std::io::StdinLock;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use config::ToipeConfig;
 use termion::input::Keys;
-use termion::{
-    clear, color, cursor,
-    event::Key,
-    input::TermRead,
-    raw::{IntoRawMode, RawTerminal},
-    style, terminal_size,
-};
+use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
+use tui::{Text, ToipeTui};
 use wordlists::{get_word_list, OS_WORDLIST_PATH};
 
 /// Typing test terminal UI and logic.
 pub struct Toipe {
-    stdout: RawTerminal<Stdout>,
+    tui: ToipeTui,
     text: String,
     words: Vec<String>,
     word_selector: Box<dyn WordSelector>,
@@ -63,11 +59,9 @@ impl<'a> Toipe {
     ///
     /// See [`ToipeConfig`] for configuration options.
     ///
-    /// Puts `stdout` in raw mode and initializes the word selector.
+    /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
-        let stdout = stdout().into_raw_mode().unwrap();
-
         let word_selector: Box<dyn WordSelector> =
             if let Some(word_list) = get_word_list(config.wordlist.as_str()) {
                 Box::new(RawWordSelector::from_string(word_list.to_string())?)
@@ -78,7 +72,7 @@ impl<'a> Toipe {
             };
 
         let mut toipe = Toipe {
-            stdout,
+            tui: ToipeTui::new(),
             text: "".to_string(),
             words: Vec::new(),
             word_selector,
@@ -94,7 +88,7 @@ impl<'a> Toipe {
     /// Clears the screen, generates new words and displays them on the
     /// UI.
     pub fn restart(&mut self) -> Result<(), ToipeError> {
-        self.reset_screen()?;
+        self.tui.reset_screen()?;
 
         self.words = self.word_selector.new_words(10)?;
         self.text = self.words.join(" ");
@@ -104,39 +98,9 @@ impl<'a> Toipe {
         Ok(())
     }
 
-    fn reset_screen(&mut self) -> Result<(), ToipeError> {
-        let (sizex, sizey) = terminal_size()?;
-
-        write!(
-            self.stdout,
-            "{}{}{}",
-            clear::All,
-            cursor::Goto(sizex / 2, sizey / 2),
-            cursor::BlinkingBar
-        )?;
-        self.flush()?;
-
-        Ok(())
-    }
-
     fn show_words(&mut self) -> Result<(), ToipeError> {
-        write!(
-            self.stdout,
-            "{}{}{}{}{}",
-            style::Faint,
-            cursor::Left(self.text.len() as u16 / 2),
-            self.text,
-            cursor::Left(self.text.len() as u16),
-            style::NoFaint,
-        )?;
-        self.flush()?;
-
-        Ok(())
-    }
-
-    fn flush(&mut self) -> Result<(), ToipeError> {
-        self.stdout.flush()?;
-        Ok(())
+        let text = Text::from(self.text.clone()).with_faint();
+        self.tui.display_a_line(&[text])
     }
 
     /// Start typing test by monitoring input keys.
@@ -170,22 +134,13 @@ impl<'a> Toipe {
                     num_chars_typed += 1;
 
                     if text[input.len() - 1] == c {
-                        write!(
-                            self.stdout,
-                            "{}{}{}",
-                            color::Fg(color::LightGreen),
-                            c,
-                            color::Fg(color::Reset)
-                        )?;
+                        self.tui
+                            .display_raw_text(&Text::from(c).with_color(color::LightGreen))?;
                     } else {
-                        write!(
-                            self.stdout,
-                            "{}{}{}{}{}",
-                            color::Fg(color::Red),
-                            style::Underline,
-                            text[input.len() - 1],
-                            style::Reset,
-                            color::Fg(color::Reset),
+                        self.tui.display_raw_text(
+                            &Text::from(text[input.len() - 1])
+                                .with_underline()
+                                .with_color(color::Red),
                         )?;
                         num_errors += 1;
                     }
@@ -193,22 +148,14 @@ impl<'a> Toipe {
                 Key::Backspace => {
                     let last_char = input.pop();
                     if let Some(_) = last_char {
-                        write!(
-                            self.stdout,
-                            "{}{}{}{}{}",
-                            cursor::Left(1),
-                            style::Faint,
-                            text[input.len()],
-                            style::Reset,
-                            cursor::Left(1),
-                        )?;
+                        self.tui
+                            .replace_text(&[Text::from(text[input.len()]).with_faint()])?;
                     }
                 }
                 _ => {}
             }
 
-            // write!(self.stdout, "{:?}", key)?;
-            self.flush()?;
+            self.tui.flush()?;
 
             Ok(true)
         };
@@ -255,93 +202,32 @@ impl<'a> Toipe {
         results: ToipeResults,
         mut keys: Keys<StdinLock>,
     ) -> Result<bool, ToipeError> {
-        self.reset_screen()?;
+        self.tui.reset_screen()?;
 
-        let (sizex, sizey) = terminal_size()?;
-
-        let line = format!("Accuracy: {:.1}%", results.accuracy() * 100.0);
-        write!(
-            self.stdout,
-            "{}{}{}{}{}",
-            cursor::Goto(sizex / 2, sizey / 2 - 2),
-            cursor::Left(line.len() as u16 / 2),
-            color::Fg(color::Blue),
-            line,
-            color::Fg(color::Reset),
-        )?;
-
-        let line = format!(
-            "Mistakes: {} out of {} characters",
-            results.num_errors, results.num_chars_text
-        );
-        write!(
-            self.stdout,
-            "{}{}{}",
-            cursor::Goto(sizex / 2, sizey / 2 - 1),
-            cursor::Left(line.len() as u16 / 2),
-            line,
-        )?;
-
-        let line = format!(
-            "Speed: {}{:.1} wpm{} (words per minute)",
-            color::Fg(color::Green),
-            results.wpm(),
-            color::Fg(color::Reset)
-        );
-        // do not consider length of formatting characters
-        let zerowidths = format!("{}{}", color::Fg(color::Green), color::Fg(color::Reset));
-        write!(
-            self.stdout,
-            "{}{}{}",
-            cursor::Goto(sizex / 2, sizey / 2),
-            cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
-            line,
-        )?;
-
-        let line = format!(
-            "Speed: {}{:.1} cpm{} (characters per minute)",
-            color::Fg(color::Cyan),
-            results.cpm(),
-            color::Fg(color::Reset)
-        );
-        // do not consider length of formatting characters
-        let zerowidths = format!("{}{}", color::Fg(color::Cyan), color::Fg(color::Reset));
-        write!(
-            self.stdout,
-            "{}{}{}",
-            cursor::Goto(sizex / 2, sizey / 2 + 1),
-            cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
-            line,
-        )?;
-
-        let line = format!(
-            "Press {}r{} to restart, {}q{} to quit.",
-            color::Fg(color::Blue),
-            color::Fg(color::Reset),
-            color::Fg(color::Blue),
-            color::Fg(color::Reset)
-        );
-        // do not consider length of formatting characters
-        let zerowidths = format!(
-            "{}{}{}{}",
-            color::Fg(color::Blue),
-            color::Fg(color::Reset),
-            color::Fg(color::Blue),
-            color::Fg(color::Reset)
-        );
-        write!(
-            self.stdout,
-            "{}{}{}{}{}",
-            cursor::Goto(sizex / 2, sizey - 2),
-            cursor::Left((line.len() - zerowidths.len()) as u16 / 2),
-            style::Faint,
-            line,
-            style::NoFaint,
-        )?;
-
+        self.tui.display_lines(&[
+            &[
+                Text::from(format!("Accuracy: {:.1}%", results.accuracy() * 100.0))
+                    .with_color(color::Blue),
+            ],
+            &[Text::from(format!(
+                "Mistakes: {} out of {} characters",
+                results.num_errors, results.num_chars_text
+            ))],
+            &[
+                Text::from("Speed: "),
+                Text::from(format!("{:.1} wpm", results.wpm())).with_color(color::Green),
+                Text::from(" (words per minute)"),
+            ],
+            &[
+                Text::from("Press "),
+                Text::from("r").with_color(color::Blue),
+                Text::from(" to restart, "),
+                Text::from("q").with_color(color::Blue),
+                Text::from(" to quit."),
+            ],
+        ])?;
         // no cursor on results page
-        write!(self.stdout, "{}", cursor::Hide)?;
-        self.flush()?;
+        self.tui.hide_cursor()?;
 
         let mut to_restart = false;
         // press 'r' to restart
@@ -350,32 +236,13 @@ impl<'a> Toipe {
             _ => {}
         }
 
-        write!(self.stdout, "{}", cursor::Show)?;
-        self.flush()?;
+        self.tui.show_cursor()?;
 
         Ok(to_restart)
     }
 }
 
-impl Drop for Toipe {
-    /// Resets terminal.
-    ///
-    /// Clears screen and sets the cursor to a non-blinking block.
-    ///
-    /// TODO: reset cursor to whatever it was before Toipe was started.
-    fn drop(&mut self) {
-        write!(
-            self.stdout,
-            "{}{}{}",
-            clear::All,
-            cursor::SteadyBlock,
-            cursor::Goto(1, 1)
-        )
-        .expect("Could not reset terminal while exiting");
-        self.flush().expect("Could not flush stdout while exiting");
-    }
-}
-
+// TODO: split this into a results module
 /// Stores stats from a typing test.
 #[derive(Clone)]
 pub struct ToipeResults {
