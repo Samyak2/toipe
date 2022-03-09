@@ -36,8 +36,12 @@ pub trait HasLength {
 /// the same way. For example, you cannot format one part of a [`Text`]
 /// with green color while the rest is in red. You should instead use a
 /// slice of [`Text`]s with each formatting in a different way.
+#[derive(Debug, Clone)]
 pub struct Text {
     /// the raw text
+    // TODO: make this private
+    raw_text: String,
+    /// text without formatting
     text: String,
     /// actual number of char width taken when printed on the terminal
     length: usize,
@@ -50,23 +54,33 @@ impl Text {
     /// characters, zero-width characters or multi-width characters.
     pub fn new(text: String) -> Self {
         let length = text.len();
-        Self { text, length }
+        Self {
+            raw_text: text.clone(),
+            text,
+            length,
+        }
     }
 
-    /// the raw text
+    /// the raw text with all formatting
+    // TODO: remove this
+    pub fn raw_text(&self) -> &String {
+        &self.raw_text
+    }
+
+    /// the actual printed text without formatting
     pub fn text(&self) -> &String {
         &self.text
     }
 
     /// adds faint style to the text
     pub fn with_faint(mut self) -> Self {
-        self.text = format!("{}{}{}", style::Faint, self.text, style::NoFaint);
+        self.raw_text = format!("{}{}{}", style::Faint, self.raw_text, style::NoFaint);
         self
     }
 
     /// adds underline to the text
     pub fn with_underline(mut self) -> Self {
-        self.text = format!("{}{}{}", style::Underline, self.text, style::Reset);
+        self.raw_text = format!("{}{}{}", style::Underline, self.raw_text, style::Reset);
         self
     }
 
@@ -75,10 +89,10 @@ impl Text {
     where
         C: Color,
     {
-        self.text = format!(
+        self.raw_text = format!(
             "{}{}{}",
             color::Fg(color),
-            self.text,
+            self.raw_text,
             color::Fg(color::Reset)
         );
         self
@@ -132,7 +146,7 @@ impl From<char> for Text {
 /// Displays the raw string as-is. No surprises here.
 impl Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.text)
+        write!(f, "{}", self.raw_text)
     }
 }
 
@@ -141,7 +155,7 @@ pub struct ToipeTui {
     stdout: RawTerminal<Stdout>,
 }
 
-type MaybeError = Result<(), ToipeError>;
+type MaybeError<T = ()> = Result<T, ToipeError>;
 
 impl ToipeTui {
     /// Initializes stdout in raw mode for the TUI.
@@ -196,10 +210,15 @@ impl ToipeTui {
     }
 
     /// Same as [`display_a_line`] but without the flush.
-    fn display_a_line_raw(&mut self, text: &[Text]) -> MaybeError {
-        let len = text.length() as u16;
+    fn display_a_line_raw<T, U>(&mut self, text: U) -> MaybeError
+    where
+        U: AsRef<[T]>,
+        [T]: HasLength,
+        T: Display,
+    {
+        let len = text.as_ref().length() as u16;
         write!(self.stdout, "{}", cursor::Left(len / 2),)?;
-        for t in text {
+        for t in text.as_ref() {
             self.display_raw_text(t)?;
         }
         write!(self.stdout, "{}", cursor::Left(len),)?;
@@ -214,7 +233,14 @@ impl ToipeTui {
     ///
     /// - The lines are centered vertically and each line itself is
     ///   centered horizontally.
-    pub fn display_lines(&mut self, lines: &[&[Text]]) -> MaybeError {
+    // Ref for this generic thingy: https://stackoverflow.com/a/50056925/11199009
+    // TODO: document the generic stuff
+    pub fn display_lines<T, U>(&mut self, lines: &[T]) -> MaybeError
+    where
+        T: AsRef<[U]>,
+        [U]: HasLength,
+        U: Display,
+    {
         let (sizex, sizey) = terminal_size()?;
 
         let mut line_no = 0;
@@ -226,7 +252,7 @@ impl ToipeTui {
                 "{}",
                 cursor::Goto(sizex / 2, sizey / 2 + line_no - line_offset)
             )?;
-            self.display_a_line_raw(line)?;
+            self.display_a_line_raw(line.as_ref())?;
             line_no += 1;
         }
         self.flush()?;
@@ -234,8 +260,50 @@ impl ToipeTui {
         Ok(())
     }
 
+    // TODO: document this
+    pub fn display_words(&mut self, words: &Vec<String>) -> MaybeError<Vec<Text>> {
+        let mut current_len = 0;
+        let mut line = Vec::new();
+        let mut lines = Vec::new();
+        let (terminal_width, _) = terminal_size()?;
+        // 80% of terminal width
+        let max_width = terminal_width * 4 / 5;
+        // eprintln!("max width is {}", max_width);
+
+        for word in words {
+            if current_len + word.len() as u16 + 1 <= max_width {
+                // add to line
+                line.push(word.clone());
+                current_len += word.len() as u16 + 1
+            } else {
+                lines.push(Text::from(line.join(" ")).with_faint());
+
+                // clear line
+                line = Vec::new();
+                current_len = 0;
+            }
+        }
+
+        // last line wasn't added in loop
+        lines.push(Text::from(line.join(" ")).with_faint());
+
+        self.display_lines(
+            lines
+                .iter()
+                .cloned()
+                .map(|line| [line])
+                .collect::<Vec<[Text; 1]>>()
+                .as_slice(),
+        )?;
+
+        Ok(lines)
+    }
+
     /// Displays a [`Text`].
-    pub fn display_raw_text(&mut self, text: &Text) -> MaybeError {
+    pub fn display_raw_text<T>(&mut self, text: &T) -> MaybeError
+    where
+        T: Display,
+    {
         write!(self.stdout, "{}", text)?;
         Ok(())
     }
@@ -260,11 +328,16 @@ impl ToipeTui {
     /// of characters in the given text.
     ///
     /// The text is described by a slice of [`Text`].
-    pub fn replace_text(&mut self, texts: &[Text]) -> MaybeError {
-        let len = texts.length() as u16;
+    pub fn replace_text<T, U>(&mut self, texts: U) -> MaybeError
+    where
+        U: AsRef<[T]>,
+        [T]: HasLength,
+        T: Display,
+    {
+        let len = texts.as_ref().length() as u16;
 
         write!(self.stdout, "{}", cursor::Left(len))?;
-        for text in texts {
+        for text in texts.as_ref() {
             self.display_raw_text(text)?;
         }
         write!(self.stdout, "{}", cursor::Left(len))?;

@@ -31,7 +31,7 @@ use wordlists::{get_word_list, OS_WORDLIST_PATH};
 /// Typing test terminal UI and logic.
 pub struct Toipe {
     tui: ToipeTui,
-    text: String,
+    text: Vec<Text>,
     words: Vec<String>,
     word_selector: Box<dyn WordSelector>,
 }
@@ -75,8 +75,8 @@ impl<'a> Toipe {
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
-            text: "".to_string(),
             words: Vec::new(),
+            text: Vec::new(),
             word_selector,
         };
 
@@ -93,7 +93,6 @@ impl<'a> Toipe {
         self.tui.reset_screen()?;
 
         self.words = self.word_selector.new_words(10)?;
-        self.text = self.words.join(" ");
 
         self.show_words()?;
 
@@ -101,8 +100,8 @@ impl<'a> Toipe {
     }
 
     fn show_words(&mut self) -> Result<(), ToipeError> {
-        let text = Text::from(self.text.clone()).with_faint();
-        self.tui.display_a_line(&[text])
+        self.text = self.tui.display_words(&self.words)?;
+        Ok(())
     }
 
     /// Start typing test by monitoring input keys.
@@ -114,7 +113,8 @@ impl<'a> Toipe {
     /// [`ToipeResults`] for this test.
     pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
         let mut input = Vec::<char>::new();
-        let text: Vec<char> = self.text.chars().collect();
+        // TODO: move up/down lines
+        let text: Vec<char> = self.text[0].text().chars().collect();
         let mut num_errors = 0;
         let mut num_chars_typed = 0;
 
@@ -206,7 +206,7 @@ impl<'a> Toipe {
     ) -> Result<bool, ToipeError> {
         self.tui.reset_screen()?;
 
-        self.tui.display_lines(&[
+        self.tui.display_lines::<&[Text], _>(&[
             &[
                 Text::from(format!("Accuracy: {:.1}%", results.accuracy() * 100.0))
                     .with_color(color::Blue),
