@@ -3,6 +3,7 @@ mkShell {
   packages = [
     rustc
     cargo
+    clippy
     rust-analyzer
     rustfmt
   ];
