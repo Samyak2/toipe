@@ -11,15 +11,17 @@
 //! algorithm.
 
 pub mod config;
+pub mod results;
 pub mod textgen;
 pub mod tui;
 pub mod wordlists;
 
 use std::io::StdinLock;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use config::ToipeConfig;
+use results::ToipeResults;
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
@@ -239,54 +241,5 @@ impl<'a> Toipe {
         self.tui.show_cursor()?;
 
         Ok(to_restart)
-    }
-}
-
-// TODO: split this into a results module
-/// Stores stats from a typing test.
-#[derive(Clone)]
-pub struct ToipeResults {
-    num_words: usize,
-    num_chars_typed: usize,
-    num_chars_text: usize,
-    num_errors: usize,
-    started_at: Instant,
-    ended_at: Instant,
-}
-
-impl ToipeResults {
-    /// Number of correctly typed letters
-    pub fn num_correct_chars(&self) -> usize {
-        self.num_chars_typed - self.num_errors
-    }
-
-    /// Duration of the test.
-    ///
-    /// i.e., the time between the user pressing the first key and them
-    /// typing the last letter.
-    pub fn duration(&self) -> Duration {
-        self.ended_at.duration_since(self.started_at)
-    }
-
-    /// Percentage of letters that were typed correctly.
-    pub fn accuracy(&self) -> f64 {
-        self.num_correct_chars() as f64 / self.num_chars_typed as f64
-    }
-
-    /// Speed in (correctly typed) characters per minute.
-    pub fn cpm(&self) -> f64 {
-        self.num_correct_chars() as f64 / (self.duration().as_secs_f64() / 60.0)
-    }
-
-    /// Speed in (correctly typed) words per minute.
-    ///
-    /// Measured as `cpm / (chars per word)` where `chars per word` is
-    /// measured as `(number of chars) / (number of words)`.
-    ///
-    /// Note: this is only an approximation because "correctly typed
-    /// words" is ambiguous when there could be a mistake in only one or
-    /// two letters of a word.
-    pub fn wpm(&self) -> f64 {
-        self.cpm() / (self.num_chars_text as f64 / self.num_words as f64)
     }
 }
