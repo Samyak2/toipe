@@ -267,7 +267,7 @@ impl ToipeTui {
         let mut lines = Vec::new();
         let (terminal_width, _) = terminal_size()?;
         // 80% of terminal width
-        let max_width = terminal_width * 4 / 5;
+        let max_width = terminal_width * 2 / 5;
         // eprintln!("max width is {}", max_width);
 
         for word in words {

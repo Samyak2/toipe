@@ -20,6 +20,18 @@ toipe looks best on a nice terminal (such as Alacritty) with color and style sup
 toipe
 ```
 
+## Show less or more text
+
+To change the number of words shown in each test, use the `-n` flag (default: 50):
+
+```
+toipe -n 10
+```
+
+```
+toipe -n 100
+```
+
 ## Use a different word list
 
 By default (in versions `>0.1.1`), a list of top 250 English words is used and random words are selected from it.

@@ -34,6 +34,7 @@ pub struct Toipe {
     text: Vec<Text>,
     words: Vec<String>,
     word_selector: Box<dyn WordSelector>,
+    config: ToipeConfig,
 }
 
 /// Represents any error caught in Toipe.
@@ -70,7 +71,9 @@ impl<'a> Toipe {
             } else if config.wordlist == "os" {
                 Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
             } else {
-                Box::new(RawWordSelector::from_path(PathBuf::from(config.wordlist))?)
+                Box::new(RawWordSelector::from_path(PathBuf::from(
+                    config.wordlist.clone(),
+                ))?)
             };
 
         let mut toipe = Toipe {
@@ -78,6 +81,7 @@ impl<'a> Toipe {
             words: Vec::new(),
             text: Vec::new(),
             word_selector,
+            config,
         };
 
         toipe.restart()?;
@@ -92,7 +96,7 @@ impl<'a> Toipe {
     pub fn restart(&mut self) -> Result<(), ToipeError> {
         self.tui.reset_screen()?;
 
-        self.words = self.word_selector.new_words(10)?;
+        self.words = self.word_selector.new_words(self.config.num_words)?;
 
         self.show_words()?;
 
