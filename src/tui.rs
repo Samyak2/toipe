@@ -350,12 +350,14 @@ impl ToipeTui {
         let mut line = Vec::new();
         let mut lines = Vec::new();
         let (terminal_width, _) = terminal_size()?;
-        // 80% of terminal width
+        // 40% of terminal width
         let max_width = terminal_width * 2 / 5;
+        const MAX_WORDS_PER_LINE: usize = 10;
         // eprintln!("max width is {}", max_width);
 
         for word in words {
-            if current_len + word.len() as u16 + 1 <= max_width {
+            let new_len = current_len + word.len() as u16 + 1;
+            if line.len() < MAX_WORDS_PER_LINE && new_len <= max_width {
                 // add to line
                 line.push(word.clone());
                 current_len += word.len() as u16 + 1
