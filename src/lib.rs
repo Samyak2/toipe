@@ -117,10 +117,13 @@ impl<'a> Toipe {
     /// [`ToipeResults`] for this test.
     pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
         let mut input = Vec::<char>::new();
-        let original_text = self.text.iter().fold(Vec::<char>::new(), |mut chars, text| {
-            chars.extend(text.text().chars());
-            chars
-        });
+        let original_text = self
+            .text
+            .iter()
+            .fold(Vec::<char>::new(), |mut chars, text| {
+                chars.extend(text.text().chars());
+                chars
+            });
         let mut num_errors = 0;
         let mut num_chars_typed = 0;
 
