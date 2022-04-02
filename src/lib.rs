@@ -117,8 +117,10 @@ impl<'a> Toipe {
     /// [`ToipeResults`] for this test.
     pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
         let mut input = Vec::<char>::new();
-        // TODO: move up/down lines
-        let text: Vec<char> = self.text[0].text().chars().collect();
+        let original_text = self.text.iter().fold(Vec::<char>::new(), |mut chars, text| {
+            chars.extend(text.text().chars());
+            chars
+        });
         let mut num_errors = 0;
         let mut num_chars_typed = 0;
 
@@ -133,21 +135,23 @@ impl<'a> Toipe {
                 Key::Char(c) => {
                     input.push(c);
 
-                    if input.len() >= text.len() {
+                    if input.len() >= original_text.len() {
                         return Ok(false);
                     }
 
                     num_chars_typed += 1;
 
-                    if text[input.len() - 1] == c {
+                    if original_text[input.len() - 1] == c {
                         self.tui
                             .display_raw_text(&Text::from(c).with_color(color::LightGreen))?;
+                        self.tui.move_to_next_char()?;
                     } else {
                         self.tui.display_raw_text(
-                            &Text::from(text[input.len() - 1])
+                            &Text::from(original_text[input.len() - 1])
                                 .with_underline()
                                 .with_color(color::Red),
                         )?;
+                        self.tui.move_to_next_char()?;
                         num_errors += 1;
                     }
                 }
@@ -155,7 +159,7 @@ impl<'a> Toipe {
                     let last_char = input.pop();
                     if let Some(_) = last_char {
                         self.tui
-                            .replace_text(&[Text::from(text[input.len()]).with_faint()])?;
+                            .replace_text(Text::from(original_text[input.len()]).with_faint())?;
                     }
                 }
                 _ => {}
