@@ -22,7 +22,7 @@ toipe
 
 ## Show less or more text
 
-To change the number of words shown in each test, use the `-n` flag (default: 50):
+To change the number of words shown in each test, use the `-n` flag (default: 30):
 
 ```
 toipe -n 10

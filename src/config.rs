@@ -16,6 +16,6 @@ pub struct ToipeConfig {
     #[clap(short, long, default_value_t = String::from("top250"))]
     pub wordlist: String,
     /// Number of words to show on each test.
-    #[clap(short, long, default_value_t = 50)]
+    #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
 }
