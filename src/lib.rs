@@ -223,11 +223,17 @@ impl<'a> Toipe {
                 "Mistakes: {} out of {} characters",
                 results.num_errors, results.num_chars_text
             ))],
+            &[Text::from(format!(
+                "Took {}s for {} words",
+                results.duration().as_secs(),
+                self.config.num_words,
+            ))],
             &[
                 Text::from("Speed: "),
                 Text::from(format!("{:.1} wpm", results.wpm())).with_color(color::Green),
                 Text::from(" (words per minute)"),
             ],
+            &[],
             &[
                 Text::from("Press "),
                 Text::from("r").with_color(color::Blue),
