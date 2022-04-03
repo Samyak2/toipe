@@ -248,15 +248,21 @@ impl<'a> Toipe {
         // no cursor on results page
         self.tui.hide_cursor()?;
 
-        let mut to_restart = false;
-        // press 'r' to restart
-        match keys.next().unwrap()? {
-            Key::Char('r') => to_restart = true,
-            _ => {}
+        // TODO: make this a bit more general
+        // perhaps use a `known_keys_pressed` flag?
+        let mut to_restart: Option<bool> = None;
+        while let None = to_restart {
+            match keys.next().unwrap()? {
+                // press 'r' to restart
+                Key::Char('r') => to_restart = Some(true),
+                // press 'q' to quit
+                Key::Char('q') => to_restart = Some(false),
+                _ => {}
+            }
         }
 
         self.tui.show_cursor()?;
 
-        Ok(to_restart)
+        Ok(to_restart.unwrap_or(false))
     }
 }
