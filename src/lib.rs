@@ -31,9 +31,10 @@ use wordlists::{get_word_list, OS_WORDLIST_PATH};
 /// Typing test terminal UI and logic.
 pub struct Toipe {
     tui: ToipeTui,
-    text: String,
+    text: Vec<Text>,
     words: Vec<String>,
     word_selector: Box<dyn WordSelector>,
+    config: ToipeConfig,
 }
 
 /// Represents any error caught in Toipe.
@@ -70,14 +71,17 @@ impl<'a> Toipe {
             } else if config.wordlist == "os" {
                 Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
             } else {
-                Box::new(RawWordSelector::from_path(PathBuf::from(config.wordlist))?)
+                Box::new(RawWordSelector::from_path(PathBuf::from(
+                    config.wordlist.clone(),
+                ))?)
             };
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
-            text: "".to_string(),
             words: Vec::new(),
+            text: Vec::new(),
             word_selector,
+            config,
         };
 
         toipe.restart()?;
@@ -92,8 +96,7 @@ impl<'a> Toipe {
     pub fn restart(&mut self) -> Result<(), ToipeError> {
         self.tui.reset_screen()?;
 
-        self.words = self.word_selector.new_words(10)?;
-        self.text = self.words.join(" ");
+        self.words = self.word_selector.new_words(self.config.num_words)?;
 
         self.show_words()?;
 
@@ -101,8 +104,8 @@ impl<'a> Toipe {
     }
 
     fn show_words(&mut self) -> Result<(), ToipeError> {
-        let text = Text::from(self.text.clone()).with_faint();
-        self.tui.display_a_line(&[text])
+        self.text = self.tui.display_words(&self.words)?;
+        Ok(())
     }
 
     /// Start typing test by monitoring input keys.
@@ -114,7 +117,13 @@ impl<'a> Toipe {
     /// [`ToipeResults`] for this test.
     pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
         let mut input = Vec::<char>::new();
-        let text: Vec<char> = self.text.chars().collect();
+        let original_text = self
+            .text
+            .iter()
+            .fold(Vec::<char>::new(), |mut chars, text| {
+                chars.extend(text.text().chars());
+                chars
+            });
         let mut num_errors = 0;
         let mut num_chars_typed = 0;
 
@@ -129,21 +138,23 @@ impl<'a> Toipe {
                 Key::Char(c) => {
                     input.push(c);
 
-                    if input.len() >= text.len() {
+                    if input.len() >= original_text.len() {
                         return Ok(false);
                     }
 
                     num_chars_typed += 1;
 
-                    if text[input.len() - 1] == c {
+                    if original_text[input.len() - 1] == c {
                         self.tui
                             .display_raw_text(&Text::from(c).with_color(color::LightGreen))?;
+                        self.tui.move_to_next_char()?;
                     } else {
                         self.tui.display_raw_text(
-                            &Text::from(text[input.len() - 1])
+                            &Text::from(original_text[input.len() - 1])
                                 .with_underline()
                                 .with_color(color::Red),
                         )?;
+                        self.tui.move_to_next_char()?;
                         num_errors += 1;
                     }
                 }
@@ -151,7 +162,7 @@ impl<'a> Toipe {
                     let last_char = input.pop();
                     if let Some(_) = last_char {
                         self.tui
-                            .replace_text(&[Text::from(text[input.len()]).with_faint()])?;
+                            .replace_text(Text::from(original_text[input.len()]).with_faint())?;
                     }
                 }
                 _ => {}
@@ -206,7 +217,7 @@ impl<'a> Toipe {
     ) -> Result<bool, ToipeError> {
         self.tui.reset_screen()?;
 
-        self.tui.display_lines(&[
+        self.tui.display_lines::<&[Text], _>(&[
             &[
                 Text::from(format!("Accuracy: {:.1}%", results.accuracy() * 100.0))
                     .with_color(color::Blue),
@@ -215,11 +226,17 @@ impl<'a> Toipe {
                 "Mistakes: {} out of {} characters",
                 results.num_errors, results.num_chars_text
             ))],
+            &[Text::from(format!(
+                "Took {}s for {} words",
+                results.duration().as_secs(),
+                self.config.num_words,
+            ))],
             &[
                 Text::from("Speed: "),
                 Text::from(format!("{:.1} wpm", results.wpm())).with_color(color::Green),
                 Text::from(" (words per minute)"),
             ],
+            &[],
             &[
                 Text::from("Press "),
                 Text::from("r").with_color(color::Blue),

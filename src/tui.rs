@@ -8,7 +8,7 @@ use std::{
 use termion::{
     clear,
     color::{self, Color},
-    cursor,
+    cursor::{self, DetectCursorPos},
     raw::{IntoRawMode, RawTerminal},
     style, terminal_size,
 };
@@ -35,9 +35,13 @@ pub trait HasLength {
 /// single [`Text`] only holds one string with all of it formatted in
 /// the same way. For example, you cannot format one part of a [`Text`]
 /// with green color while the rest is in red. You should instead use a
-/// slice of [`Text`]s with each formatting in a different way.
+/// slice of [`Text`]s with each formatted in a different way.
+#[derive(Debug, Clone)]
 pub struct Text {
     /// the raw text
+    // TODO: make this private
+    raw_text: String,
+    /// text without formatting
     text: String,
     /// actual number of char width taken when printed on the terminal
     length: usize,
@@ -50,23 +54,33 @@ impl Text {
     /// characters, zero-width characters or multi-width characters.
     pub fn new(text: String) -> Self {
         let length = text.len();
-        Self { text, length }
+        Self {
+            raw_text: text.clone(),
+            text,
+            length,
+        }
     }
 
-    /// the raw text
+    /// the raw text with all formatting
+    // TODO: remove this
+    pub fn raw_text(&self) -> &String {
+        &self.raw_text
+    }
+
+    /// the actual printed text without formatting
     pub fn text(&self) -> &String {
         &self.text
     }
 
     /// adds faint style to the text
     pub fn with_faint(mut self) -> Self {
-        self.text = format!("{}{}{}", style::Faint, self.text, style::NoFaint);
+        self.raw_text = format!("{}{}{}", style::Faint, self.raw_text, style::NoFaint);
         self
     }
 
     /// adds underline to the text
     pub fn with_underline(mut self) -> Self {
-        self.text = format!("{}{}{}", style::Underline, self.text, style::Reset);
+        self.raw_text = format!("{}{}{}", style::Underline, self.raw_text, style::Reset);
         self
     }
 
@@ -75,10 +89,10 @@ impl Text {
     where
         C: Color,
     {
-        self.text = format!(
+        self.raw_text = format!(
             "{}{}{}",
             color::Fg(color),
-            self.text,
+            self.raw_text,
             color::Fg(color::Reset)
         );
         self
@@ -132,16 +146,86 @@ impl From<char> for Text {
 /// Displays the raw string as-is. No surprises here.
 impl Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.text)
+        write!(f, "{}", self.raw_text)
+    }
+}
+
+/// the position of a line of words
+#[derive(Clone, Copy)]
+struct LinePos {
+    /// y-position of line in the terminal window
+    pub y: u16,
+    /// x-position of the first char in the line
+    pub x: u16,
+    /// length (number of chars) in this line
+    pub length: u16,
+}
+
+/// TODO: document this
+struct CursorPos {
+    pub lines: Vec<LinePos>,
+    pub cur_line: usize,
+    pub cur_char_in_line: u16,
+}
+
+impl CursorPos {
+    pub fn new() -> Self {
+        Self {
+            lines: Vec::new(),
+            cur_line: 0,
+            cur_char_in_line: 0,
+        }
+    }
+
+    pub fn next(&mut self) -> (u16, u16) {
+        let line = self.lines[self.cur_line];
+        let max_chars_index = line.length - 1;
+
+        if self.cur_char_in_line < max_chars_index {
+            // more chars in line
+            self.cur_char_in_line += 1;
+        } else {
+            // reached the end of line
+            if self.cur_line + 1 < self.lines.len() {
+                // more lines available
+                self.cur_line += 1;
+                self.cur_char_in_line = 0;
+            }
+        }
+
+        self.cur_pos()
+    }
+
+    pub fn prev(&mut self) -> (u16, u16) {
+        if self.cur_char_in_line > 0 {
+            // more chars behind in line
+            self.cur_char_in_line -= 1;
+        } else {
+            // reached the start of line
+            if self.cur_line > 0 {
+                // more lines available
+                self.cur_line -= 1;
+                self.cur_char_in_line = self.lines[self.cur_line].length - 1;
+            }
+        }
+
+        self.cur_pos()
+    }
+
+    pub fn cur_pos(&self) -> (u16, u16) {
+        let line = self.lines[self.cur_line];
+        (line.x + self.cur_char_in_line, line.y)
     }
 }
 
 /// terminal UI of toipe
 pub struct ToipeTui {
     stdout: RawTerminal<Stdout>,
+    cursor_pos: CursorPos,
+    track_lines: bool,
 }
 
-type MaybeError = Result<(), ToipeError>;
+type MaybeError<T = ()> = Result<T, ToipeError>;
 
 impl ToipeTui {
     /// Initializes stdout in raw mode for the TUI.
@@ -150,7 +234,13 @@ impl ToipeTui {
     pub fn new() -> Self {
         Self {
             stdout: stdout().into_raw_mode().unwrap(),
+            cursor_pos: CursorPos::new(),
+            track_lines: false,
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.cursor_pos = CursorPos::new();
     }
 
     // TODO: make this private
@@ -196,10 +286,22 @@ impl ToipeTui {
     }
 
     /// Same as [`display_a_line`] but without the flush.
-    fn display_a_line_raw(&mut self, text: &[Text]) -> MaybeError {
-        let len = text.length() as u16;
+    fn display_a_line_raw<T, U>(&mut self, text: U) -> MaybeError
+    where
+        U: AsRef<[T]>,
+        [T]: HasLength,
+        T: Display,
+    {
+        let len = text.as_ref().length() as u16;
         write!(self.stdout, "{}", cursor::Left(len / 2),)?;
-        for t in text {
+
+        // TODO: find a better way to enable this only in certain contexts
+        if self.track_lines {
+            let (x, y) = self.stdout.cursor_pos()?;
+            self.cursor_pos.lines.push(LinePos { x, y, length: len });
+        }
+
+        for t in text.as_ref() {
             self.display_raw_text(t)?;
         }
         write!(self.stdout, "{}", cursor::Left(len),)?;
@@ -214,7 +316,14 @@ impl ToipeTui {
     ///
     /// - The lines are centered vertically and each line itself is
     ///   centered horizontally.
-    pub fn display_lines(&mut self, lines: &[&[Text]]) -> MaybeError {
+    // Ref for this generic thingy: https://stackoverflow.com/a/50056925/11199009
+    // TODO: document the generic stuff
+    pub fn display_lines<T, U>(&mut self, lines: &[T]) -> MaybeError
+    where
+        T: AsRef<[U]>,
+        [U]: HasLength,
+        U: Display,
+    {
         let (sizex, sizey) = terminal_size()?;
 
         let mut line_no = 0;
@@ -226,7 +335,7 @@ impl ToipeTui {
                 "{}",
                 cursor::Goto(sizex / 2, sizey / 2 + line_no - line_offset)
             )?;
-            self.display_a_line_raw(line)?;
+            self.display_a_line_raw(line.as_ref())?;
             line_no += 1;
         }
         self.flush()?;
@@ -234,8 +343,64 @@ impl ToipeTui {
         Ok(())
     }
 
+    // TODO: document this
+    pub fn display_words(&mut self, words: &Vec<String>) -> MaybeError<Vec<Text>> {
+        self.reset();
+        let mut current_len = 0;
+        let mut line = Vec::new();
+        let mut lines = Vec::new();
+        let (terminal_width, _) = terminal_size()?;
+        // 40% of terminal width
+        let max_width = terminal_width * 2 / 5;
+        const MAX_WORDS_PER_LINE: usize = 10;
+        // eprintln!("max width is {}", max_width);
+
+        for word in words {
+            let new_len = current_len + word.len() as u16 + 1;
+            if line.len() < MAX_WORDS_PER_LINE && new_len <= max_width {
+                // add to line
+                line.push(word.clone());
+                current_len += word.len() as u16 + 1
+            } else {
+                // add an extra space at the end of each line because
+                //  user will instinctively type a space after every word
+                //  (at least I did)
+                lines.push(Text::from(line.join(" ") + " ").with_faint());
+
+                // clear line
+                line = Vec::new();
+                current_len = 0;
+            }
+        }
+
+        // last line wasn't added in loop
+        // last line doesn't have an extra space at the end
+        //   - the typing test stops as soon as the user types last char
+        //   - won't hang there waiting for user to type space
+        lines.push(Text::from(line.join(" ")).with_faint());
+
+        self.track_lines = true;
+        self.display_lines(
+            lines
+                .iter()
+                .cloned()
+                .map(|line| [line])
+                .collect::<Vec<[Text; 1]>>()
+                .as_slice(),
+        )?;
+        self.track_lines = false;
+
+        self.move_to_cur_pos()?;
+        self.flush()?;
+
+        Ok(lines)
+    }
+
     /// Displays a [`Text`].
-    pub fn display_raw_text(&mut self, text: &Text) -> MaybeError {
+    pub fn display_raw_text<T>(&mut self, text: &T) -> MaybeError
+    where
+        T: Display,
+    {
         write!(self.stdout, "{}", text)?;
         Ok(())
     }
@@ -256,20 +421,50 @@ impl ToipeTui {
 
     /// Replaces the text previous to the cursor with given text.
     ///
-    /// Last N characters are replaced with given text. N is the number
-    /// of characters in the given text.
+    /// NOTE: only call this with [`Text`]s containing one character.
+    ///
+    /// Last character is replaced with given text.
     ///
     /// The text is described by a slice of [`Text`].
-    pub fn replace_text(&mut self, texts: &[Text]) -> MaybeError {
-        let len = texts.length() as u16;
-
-        write!(self.stdout, "{}", cursor::Left(len))?;
-        for text in texts {
-            self.display_raw_text(text)?;
-        }
-        write!(self.stdout, "{}", cursor::Left(len))?;
+    // TODO: enforce single character constrainst in compile time
+    pub fn replace_text<T>(&mut self, text: T) -> MaybeError
+    where
+        T: Display,
+    {
+        self.move_to_prev_char()?;
+        self.display_raw_text(&text)?;
+        self.move_to_cur_pos()?;
 
         Ok(())
+    }
+
+    // TODO: document this
+    pub fn move_to_next_char(&mut self) -> MaybeError {
+        let (x, y) = self.cursor_pos.next();
+        write!(self.stdout, "{}", cursor::Goto(x, y))?;
+
+        Ok(())
+    }
+
+    // TODO: document this
+    pub fn move_to_prev_char(&mut self) -> MaybeError {
+        let (x, y) = self.cursor_pos.prev();
+        write!(self.stdout, "{}", cursor::Goto(x, y))?;
+
+        Ok(())
+    }
+
+    // TODO: document this
+    pub fn move_to_cur_pos(&mut self) -> MaybeError {
+        let (x, y) = self.cursor_pos.cur_pos();
+        write!(self.stdout, "{}", cursor::Goto(x, y))?;
+
+        Ok(())
+    }
+
+    // TODO: document this
+    pub fn current_line(&self) -> usize {
+        self.cursor_pos.cur_line
     }
 }
 
