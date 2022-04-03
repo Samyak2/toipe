@@ -7,8 +7,6 @@ use std::path::PathBuf;
 
 use rand::Rng;
 
-extern crate bisection;
-
 use bisection::bisect_right;
 use rand::prelude::ThreadRng;
 
@@ -77,7 +75,7 @@ impl<T: Seek + io::Read> RawWordSelector<T> {
         let mut buffer = String::new();
 
         fn is_letter(char: u8) -> bool {
-            char >= b'a' && char <= b'z'
+            (b'a'..b'z').contains(&char)
         }
 
         loop {
@@ -203,11 +201,11 @@ impl RawWordSelector<File> {
     /// Please ensure that assumptions defined at
     /// [`RawWordSelector#assumptions`] are valid for this file.
     pub fn from_path(word_list_path: PathBuf) -> Result<Self, io::Error> {
-        let file = File::open(word_list_path.clone())?;
+        let file = File::open(word_list_path)?;
 
         let reader = BufReader::new(file);
 
-        Ok(Self::new(reader)?)
+        Self::new(reader)
     }
 }
 
@@ -217,10 +215,10 @@ impl RawWordSelector<Cursor<String>> {
     /// Please ensure that assumptions defined at
     /// [`RawWordSelector#assumptions`] are valid for the contents.
     pub fn from_string(word_list: String) -> Result<Self, io::Error> {
-        let cursor = Cursor::new(word_list.clone());
+        let cursor = Cursor::new(word_list);
         let reader = BufReader::new(cursor);
 
-        Ok(RawWordSelector::new(reader)?)
+        RawWordSelector::new(reader)
     }
 }
 

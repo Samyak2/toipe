@@ -1,5 +1,3 @@
-extern crate termion;
-
 use std::path::PathBuf;
 
 use toipe::textgen::{RawWordSelector, WordSelector};

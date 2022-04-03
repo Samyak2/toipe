@@ -5,7 +5,7 @@
 /// (top 60K lemmas sample).
 ///
 /// This static str has the contents of the word list file.
-pub const TOP_250: &'static str = include_str!("word_lists/top250");
+pub const TOP_250: &str = include_str!("word_lists/top250");
 
 /// Path to the default word list file in Linux/Unix-based systems.
 ///

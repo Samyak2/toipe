@@ -129,12 +129,9 @@ impl<'a> Toipe {
 
         let mut process_key = |key: Key| -> Result<bool, ToipeError> {
             match key {
-                Key::Ctrl(c) => match c {
-                    'c' => {
-                        return Ok(false);
-                    }
-                    _ => {}
-                },
+                Key::Ctrl('c') => {
+                    return Ok(false);
+                }
                 Key::Char(c) => {
                     input.push(c);
 
@@ -159,8 +156,7 @@ impl<'a> Toipe {
                     }
                 }
                 Key::Backspace => {
-                    let last_char = input.pop();
-                    if let Some(_) = last_char {
+                    if input.pop().is_some() {
                         self.tui
                             .replace_text(Text::from(original_text[input.len()]).with_faint())?;
                     }
@@ -251,7 +247,7 @@ impl<'a> Toipe {
         // TODO: make this a bit more general
         // perhaps use a `known_keys_pressed` flag?
         let mut to_restart: Option<bool> = None;
-        while let None = to_restart {
+        while to_restart.is_none() {
             match keys.next().unwrap()? {
                 // press 'r' to restart
                 Key::Char('r') => to_restart = Some(true),
