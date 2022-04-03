@@ -17,7 +17,17 @@ A trusty terminal typing tester.
 
 # Usage
 
+Note: toipe was only tested on Linux. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
+
 ## Install
+
+### From GitHub
+
+Go to the [latest release](https://github.com/Samyak2/toipe/releases/latest), scroll down to "Assets" and download the correct file for your platform (`.zip` in case of Windows and Mac OS, `.tar.gz` in case of Linux). Unzip the file and run the binary inside.
+
+### From Cargo
+
+Alternatively, if you have the `cargo` tool (part of the Rust toolchain) installed on your system, you can use:
 
 ```
 cargo install toipe
@@ -27,6 +37,12 @@ cargo install toipe
 
 toipe looks best on a nice terminal (such as Alacritty) with color and style support.
 
+If installed through GitHub, run the binary directly:
+```
+./binary-name-here
+```
+
+If installed through `cargo`, use:
 ```
 toipe
 ```
