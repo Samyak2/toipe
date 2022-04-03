@@ -69,7 +69,7 @@ toipe -w os
 ```
 Note: the OS word list varies a lot from system to system and usually has more than 100,000 words. This can lead to difficult and esoteric words appearing in the test, reducing your typing speed.
 
-You can provide your own word list too (TODO: requirements and assumptions of wordlist):
+You can provide your own word list too (Note: the word list must meet [these assumptions](https://docs.rs/toipe/latest/toipe/textgen/struct.RawWordSelector.html#assumptions)):
 ```
 toipe -w /path/to/word/list
 ```
