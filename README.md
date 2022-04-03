@@ -1,6 +1,17 @@
-# toipe
+<h1 align=center>
+toipe
+</h1>
 
-A trusty terminal typing tester for the tux.
+<p align=center>
+A trusty terminal typing tester.
+</p>
+
+<p align=center>
+<a href="https://crates.io/crates/toipe"><img alt="Crates.io badge" src="https://img.shields.io/crates/v/toipe"></a>
+<a href="https://github.com/Samyak2/toipe/actions/workflows/lints-and-checks.yml"><img src="https://github.com/Samyak2/toipe/actions/workflows/lints-and-checks.yml/badge.svg" alt="Lints and checks badge" /></a>
+<a href="https://docs.rs/toipe/latest/toipe/"><img alt="docs.rs badge" src="https://img.shields.io/docsrs/toipe"></a>
+</p>
+
 
 ![A demo of toipe showing a recording of a terminal, running the typing test 3 times and then looping](https://raw.githubusercontent.com/Samyak2/toipe/main/images/toipe.gif)
 
