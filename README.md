@@ -18,13 +18,11 @@ A trusty terminal typing tester.
 
 # Usage
 
-Note: toipe was only tested on Linux. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
-
 ## Install
 
 ### From GitHub
 
-Go to the [latest release](https://github.com/Samyak2/toipe/releases/latest), scroll down to "Assets" and download the correct file for your platform (`.zip` in case of Windows and Mac OS, `.tar.gz` in case of Linux). Unzip the file and run the `toipe` binary inside.
+Go to the [latest release](https://github.com/Samyak2/toipe/releases/latest), scroll down to "Assets" and download the correct file for your platform (`.zip` in case of Mac OS, `.tar.gz` in case of Linux). Unzip the file and run the `toipe` binary inside.
 
 ### From Cargo
 
@@ -74,6 +72,11 @@ You can provide your own word list too (Note: the word list must meet [these ass
 ```
 toipe -w /path/to/word/list
 ```
+
+# Platform support
+
+- toipe was only tested on Linux. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
+- Windows is not supported yet. Follow [this issue](https://github.com/Samyak2/toipe/issues/14) for updates. It should work on WSL though.
 
 # License
 
