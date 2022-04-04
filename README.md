@@ -12,8 +12,9 @@ A trusty terminal typing tester.
 <a href="https://docs.rs/toipe/latest/toipe/"><img alt="docs.rs badge" src="https://img.shields.io/docsrs/toipe"></a>
 </p>
 
-
-![A demo of toipe showing a recording of a terminal, running the typing test 3 times and then looping](https://raw.githubusercontent.com/Samyak2/toipe/main/images/toipe.gif)
+<p align=center>
+<img src=https://raw.githubusercontent.com/Samyak2/toipe/main/images/toipe.gif>
+</p>
 
 # Usage
 
