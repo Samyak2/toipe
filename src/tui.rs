@@ -341,6 +341,32 @@ impl ToipeTui {
         Ok(())
     }
 
+    /// Displays multiple lines of text at the bottom of the screen.
+    ///
+    /// See [`display_lines`] for more information.
+    pub fn display_lines_bottom<T, U>(&mut self, lines: &[T]) -> MaybeError
+    where
+        T: AsRef<[U]>,
+        [U]: HasLength,
+        U: Display,
+    {
+        let (sizex, sizey) = terminal_size()?;
+
+        let line_offset = lines.len() as u16;
+
+        for (line_no, line) in lines.iter().enumerate() {
+            write!(
+                self.stdout,
+                "{}",
+                cursor::Goto(sizex / 2, sizey - 1 + (line_no as u16) - line_offset)
+            )?;
+            self.display_a_line_raw(line.as_ref())?;
+        }
+        self.flush()?;
+
+        Ok(())
+    }
+
     // TODO: document this
     pub fn display_words(&mut self, words: &[String]) -> MaybeError<Vec<Text>> {
         self.reset();

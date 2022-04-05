@@ -98,6 +98,13 @@ impl<'a> Toipe {
 
         self.words = self.word_selector.new_words(self.config.num_words)?;
 
+        self.tui.display_lines_bottom(&[&[
+            Text::from("ctrl-r").with_color(color::Blue),
+            Text::from(" to restart, ").with_faint(),
+            Text::from("ctrl-c").with_color(color::Blue),
+            Text::from(" to quit ").with_faint(),
+        ]])?;
+
         self.show_words()?;
 
         Ok(())
@@ -272,15 +279,14 @@ impl<'a> Toipe {
                 Text::from(format!("{:.1} wpm", results.wpm())).with_color(color::Green),
                 Text::from(" (words per minute)"),
             ],
-            &[],
-            &[
-                Text::from("Press "),
-                Text::from("r").with_color(color::Blue),
-                Text::from(" to restart, "),
-                Text::from("q").with_color(color::Blue),
-                Text::from(" to quit."),
-            ],
         ])?;
+        self.tui.display_lines_bottom(&[&[
+            Text::from("Press "),
+            Text::from("r").with_color(color::Blue),
+            Text::from(" to restart, "),
+            Text::from("q").with_color(color::Blue),
+            Text::from(" to quit."),
+        ]])?;
         // no cursor on results page
         self.tui.hide_cursor()?;
 

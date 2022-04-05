@@ -1,6 +1,6 @@
 [package]
 name = "toipe"
-description = "A trusty terminal typing tester for the tux."
+description = "A trusty terminal typing tester."
 repository = "https://github.com/Samyak2/toipe"
 readme = "README.md"
 categories = ["command-line-utilities"]
