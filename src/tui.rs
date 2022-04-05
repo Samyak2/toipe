@@ -326,17 +326,15 @@ impl ToipeTui {
     {
         let (sizex, sizey) = terminal_size()?;
 
-        let mut line_no = 0;
         let line_offset = lines.len() as u16 / 2;
 
-        for line in lines {
+        for (line_no, line) in lines.iter().enumerate() {
             write!(
                 self.stdout,
                 "{}",
-                cursor::Goto(sizex / 2, sizey / 2 + line_no - line_offset)
+                cursor::Goto(sizex / 2, sizey / 2 + (line_no as u16) - line_offset)
             )?;
             self.display_a_line_raw(line.as_ref())?;
-            line_no += 1;
         }
         self.flush()?;
 
@@ -344,7 +342,7 @@ impl ToipeTui {
     }
 
     // TODO: document this
-    pub fn display_words(&mut self, words: &Vec<String>) -> MaybeError<Vec<Text>> {
+    pub fn display_words(&mut self, words: &[String]) -> MaybeError<Vec<Text>> {
         self.reset();
         let mut current_len = 0;
         let mut line = Vec::new();
@@ -465,6 +463,12 @@ impl ToipeTui {
     // TODO: document this
     pub fn current_line(&self) -> usize {
         self.cursor_pos.cur_line
+    }
+}
+
+impl Default for ToipeTui {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,5 +1,3 @@
-extern crate termion;
-
 use clap::StructOpt;
 use std::io::stdin;
 use toipe::config::ToipeConfig;

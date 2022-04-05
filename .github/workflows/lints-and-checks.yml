@@ -18,3 +18,5 @@ jobs:
       run: cargo test --verbose
     - name: Format
       run: cargo fmt --check
+    - name: Run Clippy
+      run: cargo clippy -- -D warnings
