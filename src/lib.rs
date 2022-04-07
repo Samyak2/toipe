@@ -296,11 +296,10 @@ impl<'a> Toipe {
             ],
         ])?;
         self.tui.display_lines_bottom(&[&[
-            Text::from("Press "),
-            Text::from("r").with_color(color::Blue),
-            Text::from(" to restart, "),
-            Text::from("q").with_color(color::Blue),
-            Text::from(" to quit."),
+            Text::from("ctrl-r").with_color(color::Blue),
+            Text::from(" to restart, ").with_faint(),
+            Text::from("ctrl-c").with_color(color::Blue),
+            Text::from(" to quit ").with_faint(),
         ]])?;
         // no cursor on results page
         self.tui.hide_cursor()?;
@@ -311,9 +310,9 @@ impl<'a> Toipe {
         while to_restart.is_none() {
             match keys.next().unwrap()? {
                 // press 'r' to restart
-                Key::Char('r') => to_restart = Some(true),
+                Key::Ctrl('r') => to_restart = Some(true),
                 // press 'q' to quit
-                Key::Char('q') => to_restart = Some(false),
+                Key::Ctrl('c') => to_restart = Some(false),
                 _ => {}
             }
         }
