@@ -98,6 +98,13 @@ impl<'a> Toipe {
 
         self.words = self.word_selector.new_words(self.config.num_words)?;
 
+        self.tui.display_lines_bottom(&[&[
+            Text::from("ctrl-r").with_color(color::Blue),
+            Text::from(" to restart, ").with_faint(),
+            Text::from("ctrl-c").with_color(color::Blue),
+            Text::from(" to quit ").with_faint(),
+        ]])?;
+
         self.show_words()?;
 
         Ok(())
@@ -127,16 +134,54 @@ impl<'a> Toipe {
         let mut num_errors = 0;
         let mut num_chars_typed = 0;
 
-        let mut process_key = |key: Key| -> Result<bool, ToipeError> {
+        enum TestStatus {
+            // last key press did not quit/restart - more keys to be entered
+            NotDone,
+            // last letter was typed
+            Done,
+            // user wants to quit test
+            Quit,
+            // user wants to restart test
+            Restart,
+        }
+
+        impl TestStatus {
+            fn to_process_more_keys(&self) -> bool {
+                matches!(self, TestStatus::NotDone)
+            }
+
+            fn to_display_results(&self) -> bool {
+                matches!(self, TestStatus::Done)
+            }
+
+            fn to_restart(&self) -> bool {
+                matches!(self, TestStatus::Restart)
+            }
+        }
+
+        let mut process_key = |key: Key| -> Result<TestStatus, ToipeError> {
             match key {
                 Key::Ctrl('c') => {
-                    return Ok(false);
+                    return Ok(TestStatus::Quit);
+                }
+                Key::Ctrl('r') => {
+                    return Ok(TestStatus::Restart);
+                }
+                Key::Ctrl('w') => {
+                    // delete last word
+                    while !matches!(input.last(), Some(' ') | None) {
+                        if input.pop().is_some() {
+                            self.tui.replace_text(
+                                Text::from(original_text[input.len()]).with_faint(),
+                            )?;
+                        }
+                    }
                 }
                 Key::Char(c) => {
                     input.push(c);
 
                     if input.len() >= original_text.len() {
-                        return Ok(false);
+                        return Ok(TestStatus::Done);
                     }
 
                     num_chars_typed += 1;
@@ -166,7 +211,7 @@ impl<'a> Toipe {
 
             self.tui.flush()?;
 
-            Ok(true)
+            Ok(TestStatus::NotDone)
         };
 
         let mut keys = stdin.keys();
@@ -176,14 +221,12 @@ impl<'a> Toipe {
         // start the timer
         let started_at = Instant::now();
         // process first key
-        let res = process_key(key)?;
+        let mut status = process_key(key)?;
 
-        // process other keys if first key wasn't exit
-        if res {
+        if status.to_process_more_keys() {
             for key in &mut keys {
-                let res = process_key(key?)?;
-                // stop if key was exit (ctrl-c)
-                if !res {
+                status = process_key(key?)?;
+                if !status.to_process_more_keys() {
                     break;
                 }
             }
@@ -201,7 +244,11 @@ impl<'a> Toipe {
             ended_at,
         };
 
-        let to_restart = self.display_results(results.clone(), keys)?;
+        let to_restart = if status.to_display_results() {
+            self.display_results(results.clone(), keys)?
+        } else {
+            status.to_restart()
+        };
 
         Ok((to_restart, results))
     }
@@ -232,15 +279,14 @@ impl<'a> Toipe {
                 Text::from(format!("{:.1} wpm", results.wpm())).with_color(color::Green),
                 Text::from(" (words per minute)"),
             ],
-            &[],
-            &[
-                Text::from("Press "),
-                Text::from("r").with_color(color::Blue),
-                Text::from(" to restart, "),
-                Text::from("q").with_color(color::Blue),
-                Text::from(" to quit."),
-            ],
         ])?;
+        self.tui.display_lines_bottom(&[&[
+            Text::from("Press "),
+            Text::from("r").with_color(color::Blue),
+            Text::from(" to restart, "),
+            Text::from("q").with_color(color::Blue),
+            Text::from(" to quit."),
+        ]])?;
         // no cursor on results page
         self.tui.hide_cursor()?;
 

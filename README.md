@@ -46,6 +46,10 @@ If installed through `cargo`, use:
 toipe
 ```
 
+## Keyboard shortcuts
+
+See `toipe --help` for a list of keyboard shortcuts (the list can also be found [here](https://github.com/Samyak2/toipe/blob/main/src/config.rs#L10)).
+
 ## Show less or more text
 
 To change the number of words shown in each test, use the `-n` flag (default: 30):
