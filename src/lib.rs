@@ -235,11 +235,26 @@ impl<'a> Toipe {
         // stop the timer
         let ended_at = Instant::now();
 
+        let (final_chars_typed_correctly, final_uncorrected_errors) =
+            input.iter().zip(original_text.iter()).fold(
+                (0, 0),
+                |(total_chars_typed_correctly, total_uncorrected_errors),
+                 (typed_char, orig_char)| {
+                    if typed_char == orig_char {
+                        (total_chars_typed_correctly + 1, total_uncorrected_errors)
+                    } else {
+                        (total_chars_typed_correctly, total_uncorrected_errors + 1)
+                    }
+                },
+            );
+
         let results = ToipeResults {
-            num_words: self.words.len(),
-            num_chars_typed,
-            num_chars_text: input.len(),
-            num_errors,
+            total_words: self.words.len(),
+            total_chars_typed: num_chars_typed,
+            total_chars_in_text: input.len(),
+            total_char_errors: num_errors,
+            final_chars_typed_correctly,
+            final_uncorrected_errors,
             started_at,
             ended_at,
         };
@@ -267,12 +282,12 @@ impl<'a> Toipe {
             ],
             &[Text::from(format!(
                 "Mistakes: {} out of {} characters",
-                results.num_errors, results.num_chars_text
+                results.total_char_errors, results.total_chars_in_text
             ))],
             &[Text::from(format!(
                 "Took {}s for {} words",
                 results.duration().as_secs(),
-                self.config.num_words,
+                results.total_words,
             ))],
             &[
                 Text::from("Speed: "),
