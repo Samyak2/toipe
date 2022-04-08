@@ -4,20 +4,25 @@ use std::time::{Duration, Instant};
 /// Stores stats from a typing test.
 #[derive(Clone)]
 pub struct ToipeResults {
-    pub num_words: usize,
-    pub num_chars_typed: usize,
-    pub num_chars_text: usize,
-    pub num_errors: usize,
+    /// number of words in given text
+    pub total_words: usize,
+    /// number of chars typed including those typed before being cleared
+    /// (by backspace or ctrl-w)
+    pub total_chars_typed: usize,
+    /// number of chars in given text
+    pub total_chars_in_text: usize,
+    /// number of wrongly typed characters including those that were cleared
+    /// (by backspace or ctrl-w)
+    pub total_char_errors: usize,
+    /// number of chars in given text that were correctly typed at the end of the test
+    pub final_chars_typed_correctly: usize,
+    /// number of chars in given text that were wrongly typed at the end of the test
+    pub final_uncorrected_errors: usize,
     pub started_at: Instant,
     pub ended_at: Instant,
 }
 
 impl ToipeResults {
-    /// Number of correctly typed letters
-    pub fn num_correct_chars(&self) -> usize {
-        self.num_chars_typed - self.num_errors
-    }
-
     /// Duration of the test.
     ///
     /// i.e., the time between the user pressing the first key and them
@@ -28,23 +33,22 @@ impl ToipeResults {
 
     /// Percentage of letters that were typed correctly.
     pub fn accuracy(&self) -> f64 {
-        self.num_correct_chars() as f64 / self.num_chars_typed as f64
-    }
-
-    /// Speed in (correctly typed) characters per minute.
-    pub fn cpm(&self) -> f64 {
-        self.num_correct_chars() as f64 / (self.duration().as_secs_f64() / 60.0)
+        (self.total_chars_typed as isize - self.total_char_errors as isize) as f64
+            / self.total_chars_typed as f64
     }
 
     /// Speed in (correctly typed) words per minute.
     ///
-    /// Measured as `cpm / (chars per word)` where `chars per word` is
-    /// measured as `(number of chars) / (number of words)`.
+    /// Measured as (number of correctly typed chars / 5 - number of uncorrected errors) / minute
     ///
-    /// Note: this is only an approximation because "correctly typed
-    /// words" is ambiguous when there could be a mistake in only one or
-    /// two letters of a word.
+    /// A "word" is considered to be 5 chars because:
+    /// - chars/letters are typed, not whole words
+    /// - a sentence with small words won't be disproportionately favoured
+    ///
+    /// Uncorrected errors are penalized to encourage correcting errors.
     pub fn wpm(&self) -> f64 {
-        self.cpm() / (self.num_chars_text as f64 / self.num_words as f64)
+        (self.final_chars_typed_correctly as f64 / 5.0 - self.final_uncorrected_errors as f64)
+            .max(0.0) as f64
+            / (self.duration().as_secs_f64() / 60.0)
     }
 }
