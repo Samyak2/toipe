@@ -26,7 +26,7 @@ use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
-use wordlists::{get_word_list, OS_WORDLIST_PATH};
+use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
 
 /// Typing test terminal UI and logic.
 pub struct Toipe {
@@ -66,14 +66,18 @@ impl<'a> Toipe {
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
         let word_selector: Box<dyn WordSelector> =
-            if let Some(word_list) = get_word_list(config.wordlist.as_str()) {
+            if let Some(wordlist_path) = config.wordlist_file.clone() {
+                Box::new(RawWordSelector::from_path(PathBuf::from(wordlist_path))?)
+            } else if let Some(word_list) = config.wordlist.contents() {
                 Box::new(RawWordSelector::from_string(word_list.to_string())?)
-            } else if config.wordlist == "os" {
+            } else if let BuiltInWordlist::OS = config.wordlist {
                 Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
             } else {
-                Box::new(RawWordSelector::from_path(PathBuf::from(
-                    config.wordlist.clone(),
-                ))?)
+                // this should never happen!
+                // TODO: somehow enforce this at compile time?
+                return Err(ToipeError {
+                    msg: "Undefined word list or path.".to_string(),
+                });
             };
 
         let mut toipe = Toipe {
@@ -276,6 +280,12 @@ impl<'a> Toipe {
         self.tui.reset_screen()?;
 
         self.tui.display_lines::<&[Text], _>(&[
+            &[Text::from(format!(
+                "Took {}s for {} words of {}",
+                results.duration().as_secs(),
+                results.total_words,
+                self.config.text_name(),
+            ))],
             &[
                 Text::from(format!("Accuracy: {:.1}%", results.accuracy() * 100.0))
                     .with_color(color::Blue),
@@ -283,11 +293,6 @@ impl<'a> Toipe {
             &[Text::from(format!(
                 "Mistakes: {} out of {} characters",
                 results.total_char_errors, results.total_chars_in_text
-            ))],
-            &[Text::from(format!(
-                "Took {}s for {} words",
-                results.duration().as_secs(),
-                results.total_words,
             ))],
             &[
                 Text::from("Speed: "),
