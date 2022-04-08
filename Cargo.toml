@@ -16,6 +16,9 @@ default-run = "toipe"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.release]
+strip = "debuginfo"
+
 [lib]
 
 [dependencies]
