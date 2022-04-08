@@ -64,9 +64,9 @@ toipe -n 100
 
 ## Use a different word list
 
-By default (in versions `>0.1.1`), a list of top 250 English words is used and random words are selected from it.
+By default, a list of top 250 English words (`top250`) is used and random words are selected from it. See `toipe -w` for a list of available built-in word lists.
 
-To use the OS provided word list instead (default in versions `<=0.1.1`), use:
+To use the OS provided word list instead, use:
 ```
 toipe -w os
 ```
@@ -74,7 +74,7 @@ Note: the OS word list varies a lot from system to system and usually has more t
 
 You can provide your own word list too (Note: the word list must meet [these assumptions](https://docs.rs/toipe/latest/toipe/textgen/struct.RawWordSelector.html#assumptions)):
 ```
-toipe -w /path/to/word/list
+toipe -f /path/to/word/list
 ```
 
 # Platform support
