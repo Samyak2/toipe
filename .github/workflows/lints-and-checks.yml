@@ -20,3 +20,5 @@ jobs:
       run: cargo fmt --check
     - name: Run Clippy
       run: cargo clippy -- -D warnings
+    - name: Check word lists
+      run: ./scripts/check_word_lists.sh
