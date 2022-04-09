@@ -71,7 +71,18 @@ impl<'a> Toipe {
             } else if let Some(word_list) = config.wordlist.contents() {
                 Box::new(RawWordSelector::from_string(word_list.to_string())?)
             } else if let BuiltInWordlist::OS = config.wordlist {
-                Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
+                //Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
+                let rws_result = RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH));
+                match rws_result {
+                    Ok(rws) => Box::new(rws),
+                    Err(e) => {
+                        // convert to toipe error
+                        let mut te = ToipeError::from(e);
+                        let msg_addition = "Error reading the given word list: ".to_string();
+                        te.msg = msg_addition + &te.msg;
+                        return Err(te);
+                    }
+                }
             } else {
                 // this should never happen!
                 // TODO: somehow enforce this at compile time?
