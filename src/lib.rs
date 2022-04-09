@@ -42,6 +42,14 @@ pub struct ToipeError {
     pub msg: String,
 }
 
+impl ToipeError {
+    /// Prefixes the message with a context
+    pub fn with_context(mut self, context: &str) -> Self {
+        self.msg = context.to_owned() + &self.msg;
+        self
+    }
+}
+
 /// Converts [`std::io::Error`] to [`ToipeError`].
 ///
 /// This keeps only the error message.
@@ -76,20 +84,26 @@ impl<'a> Toipe {
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
-        let word_selector: Box<dyn WordSelector> =
+        let word_selector: Result<Box<dyn WordSelector>, _> =
             if let Some(wordlist_path) = config.wordlist_file.clone() {
-                Box::new(RawWordSelector::from_path(PathBuf::from(wordlist_path))?)
+                RawWordSelector::from_path(PathBuf::from(wordlist_path))
+                    .map(|ws| Box::new(ws) as Box<dyn WordSelector>)
             } else if let Some(word_list) = config.wordlist.contents() {
-                Box::new(RawWordSelector::from_string(word_list.to_string())?)
+                RawWordSelector::from_string(word_list.to_string())
+                    .map(|ws| Box::new(ws) as Box<dyn WordSelector>)
             } else if let BuiltInWordlist::OS = config.wordlist {
-                Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
+                RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))
+                    .map(|ws| Box::new(ws) as Box<dyn WordSelector>)
             } else {
                 // this should never happen!
                 // TODO: somehow enforce this at compile time?
-                return Err(ToipeError {
-                    msg: "Undefined word list or path.".to_string(),
-                });
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Undefined word list or path.",
+                ))
             };
+        let word_selector = word_selector
+            .map_err(|e| ToipeError::from(e).with_context("Error reading the given word list: "))?;
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
