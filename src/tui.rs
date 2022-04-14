@@ -405,7 +405,10 @@ impl ToipeTui {
 
         if lines.len() >= terminal_height.into() {
             return Err(ToipeError {
-                msg: format!("toipe requires atleast {} lines in your terminal", lines.len()),
+                msg: format!(
+                    "toipe requires atleast {} lines in your terminal",
+                    lines.len()
+                ),
             });
         }
 

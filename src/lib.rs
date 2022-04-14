@@ -63,7 +63,6 @@ impl std::fmt::Display for ToipeError {
     }
 }
 
-
 impl<'a> Toipe {
     /// Initializes a new typing test on the standard output.
     ///
