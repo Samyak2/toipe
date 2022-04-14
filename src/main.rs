@@ -8,7 +8,7 @@ fn main() {
 
     let res = Toipe::new(config);
     if let Err(e) = res {
-        eprintln!("{}", e.to_string());
+        eprintln!("{}", e);
         std::process::exit(1);
     }
 
