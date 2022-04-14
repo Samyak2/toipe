@@ -12,6 +12,7 @@ pub enum BuiltInWordlist {
     Top1000,
     Top2500,
     Top5000,
+    Top25000,
     // The operating system's builtin word list
     OS,
 }
@@ -28,6 +29,7 @@ impl BuiltInWordlist {
             Self::Top1000 => Some(include_str!("word_lists/top1000")),
             Self::Top2500 => Some(include_str!("word_lists/top2500")),
             Self::Top5000 => Some(include_str!("word_lists/top5000")),
+            Self::Top25000 => Some(include_str!("word_lists/top25000")),
             Self::OS => None,
         }
     }
