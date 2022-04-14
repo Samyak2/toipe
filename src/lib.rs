@@ -43,6 +43,16 @@ pub struct ToipeError {
     pub msg: String,
 }
 
+impl ToipeError {
+    /// Prefixes a ToipeError's msg with 'msg_context'
+    ///
+    /// The ToipeError operated on is consumed, and a new one is returned
+    pub fn with_context(mut self: Self, msg_context: &str) -> Self {
+        self.msg = msg_context.to_owned() + &self.msg;
+        self
+    }
+}
+
 /// Converts [`std::io::Error`] to [`ToipeError`].
 ///
 /// This keeps only the error message.
@@ -65,30 +75,25 @@ impl<'a> Toipe {
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
-        fn create_toipe_wordlist_error(e: std::io::Error) -> ToipeError {
-            let mut toipe_error = ToipeError::from(e);
-            toipe_error.msg = "Error reading the given word list: ".to_string() + &toipe_error.msg;
-            toipe_error
-        }
-
+        let word_selector_error_prefix = "Error reading the given word list: ";
         let word_selector: Box<dyn WordSelector> =
             if let Some(wordlist_path) = config.wordlist_file.clone() {
                 let word_selector_result = RawWordSelector::from_path(PathBuf::from(wordlist_path));
                 match word_selector_result {
                     Ok(rws) => Box::new(rws),
-                    Err(e) => return Err(create_toipe_wordlist_error(e)),
+                    Err(e) => return Err(ToipeError::from(e).with_context(word_selector_error_prefix)),
                 }
             } else if let Some(word_list) = config.wordlist.contents() {
                 let word_selector_result = RawWordSelector::from_string(word_list.to_string());
                 match word_selector_result {
                     Ok(rws) => Box::new(rws),
-                    Err(e) => return Err(create_toipe_wordlist_error(e)),
+                    Err(e) => return Err(ToipeError::from(e).with_context(word_selector_error_prefix)),
                 }
             } else if let BuiltInWordlist::OS = config.wordlist {
                 let word_selector_result = RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH));
                 match word_selector_result {
                     Ok(rws) => Box::new(rws),
-                    Err(e) => return Err(create_toipe_wordlist_error(e)),
+                    Err(e) => return Err(ToipeError::from(e).with_context(word_selector_error_prefix)),
                 }
             } else {
                 // this should never happen!
