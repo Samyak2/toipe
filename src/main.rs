@@ -6,7 +6,13 @@ use toipe::Toipe;
 fn main() {
     let config = ToipeConfig::parse();
 
-    let mut toipe = Toipe::new(config).unwrap();
+    let res = Toipe::new(config);
+    if let Err(e) = res {
+        eprintln!("{}", e.to_string());
+        std::process::exit(1);
+    }
+
+    let mut toipe = res.unwrap();
 
     let stdin = stdin();
 

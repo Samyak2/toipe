@@ -57,6 +57,13 @@ impl From<std::io::Error> for ToipeError {
     }
 }
 
+impl std::fmt::Display for ToipeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.msg.as_str())
+    }
+}
+
+
 impl<'a> Toipe {
     /// Initializes a new typing test on the standard output.
     ///

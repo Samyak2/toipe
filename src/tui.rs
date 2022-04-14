@@ -373,7 +373,7 @@ impl ToipeTui {
         let mut current_len = 0;
         let mut line = Vec::new();
         let mut lines = Vec::new();
-        let (terminal_width, _) = terminal_size()?;
+        let (terminal_width, terminal_height) = terminal_size()?;
         // 40% of terminal width
         let max_width = terminal_width * 2 / 5;
         const MAX_WORDS_PER_LINE: usize = 10;
@@ -402,6 +402,12 @@ impl ToipeTui {
         //   - the typing test stops as soon as the user types last char
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
+
+        if lines.len() >= terminal_height.into() {
+            return Err(ToipeError {
+                msg: format!("toipe requires atleast {} lines in your terminal", lines.len()),
+            });
+        }
 
         self.track_lines = true;
         self.display_lines(
