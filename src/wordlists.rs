@@ -12,8 +12,11 @@ pub enum BuiltInWordlist {
     Top1000,
     Top2500,
     Top5000,
+    /// [Source](https://github.com/Miodec/monkeytype)
     Top10000,
+    /// [Source](https://github.com/Miodec/monkeytype)
     Top25000,
+    /// [Source](https://github.com/Miodec/monkeytype)
     CommonlyMisspelled,
     // The operating system's builtin word list
     OS,
