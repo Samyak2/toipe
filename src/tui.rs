@@ -412,7 +412,7 @@ impl ToipeTui {
         if lines.len() + self.bottom_lines_len + 1 >= terminal_height.into() {
             return Err(ToipeError::from(format!(
                 "toipe requires atleast {} lines in your terminal",
-                lines.len()
+                lines.len() + self.bottom_lines_len + 1
             )));
         } else if max_word_len >= max_width.into() {
             return Err(ToipeError::from(format!(
