@@ -399,7 +399,7 @@ impl ToipeTui {
                 // clear line
                 line = Vec::new();
                 line.push(word.clone());
-                current_len = 0;
+                current_len = word.len() as u16 + 1;
             }
         }
 
