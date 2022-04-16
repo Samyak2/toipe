@@ -2,17 +2,12 @@ use clap::StructOpt;
 use std::io::stdin;
 use toipe::config::ToipeConfig;
 use toipe::Toipe;
+use toipe::ToipeError;
 
-fn main() {
+fn main() -> Result<(), ToipeError> {
     let config = ToipeConfig::parse();
 
-    let res = Toipe::new(config);
-    if let Err(e) = res {
-        eprintln!("{}", e);
-        std::process::exit(1);
-    }
-
-    let mut toipe = res.unwrap();
+    let mut toipe = Toipe::new(config)?;
 
     let stdin = stdin();
 
@@ -24,4 +19,5 @@ fn main() {
             break;
         }
     }
+    Ok(())
 }

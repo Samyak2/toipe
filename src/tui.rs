@@ -223,6 +223,7 @@ pub struct ToipeTui {
     stdout: RawTerminal<Stdout>,
     cursor_pos: CursorPos,
     track_lines: bool,
+    bottom_lines_len: usize,
 }
 
 type MaybeError<T = ()> = Result<T, ToipeError>;
@@ -236,6 +237,7 @@ impl ToipeTui {
             stdout: stdout().into_raw_mode().unwrap(),
             cursor_pos: CursorPos::new(),
             track_lines: false,
+            bottom_lines_len: 0,
         }
     }
 
@@ -353,6 +355,7 @@ impl ToipeTui {
         let (sizex, sizey) = terminal_size()?;
 
         let line_offset = lines.len() as u16;
+        self.bottom_lines_len = lines.len();
 
         for (line_no, line) in lines.iter().enumerate() {
             write!(
@@ -371,6 +374,7 @@ impl ToipeTui {
     pub fn display_words(&mut self, words: &[String]) -> MaybeError<Vec<Text>> {
         self.reset();
         let mut current_len = 0;
+        let mut max_word_len = 0;
         let mut line = Vec::new();
         let mut lines = Vec::new();
         let (terminal_width, terminal_height) = terminal_size()?;
@@ -380,6 +384,7 @@ impl ToipeTui {
         // eprintln!("max width is {}", max_width);
 
         for word in words {
+            max_word_len = std::cmp::max(max_word_len, word.len() + 1);
             let new_len = current_len + word.len() as u16 + 1;
             if line.len() < MAX_WORDS_PER_LINE && new_len <= max_width {
                 // add to line
@@ -393,6 +398,7 @@ impl ToipeTui {
 
                 // clear line
                 line = Vec::new();
+                line.push(word.clone());
                 current_len = 0;
             }
         }
@@ -403,13 +409,16 @@ impl ToipeTui {
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
 
-        if lines.len() >= terminal_height.into() {
-            return Err(ToipeError {
-                msg: format!(
-                    "toipe requires atleast {} lines in your terminal",
-                    lines.len()
-                ),
-            });
+        if lines.len() + self.bottom_lines_len + 1 >= terminal_height.into() {
+            return Err(ToipeError::from(format!(
+                "toipe requires atleast {} lines in your terminal",
+                lines.len()
+            )));
+        } else if max_word_len >= max_width.into() {
+            return Err(ToipeError::from(format!(
+                "toipe requires atleast {} columns in your terminal",
+                max_word_len
+            )));
         }
 
         self.track_lines = true;
