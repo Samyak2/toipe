@@ -44,11 +44,9 @@ pub struct ToipeError {
 }
 
 impl ToipeError {
-    /// Prefixes a ToipeError's msg with 'msg_context'
-    ///
-    /// The ToipeError operated on is consumed, and a new one is returned
-    pub fn with_context(mut self: Self, msg_context: &str) -> Self {
-        self.msg = msg_context.to_owned() + &self.msg;
+    /// Prefixes the message with a context
+    pub fn with_context(mut self: Self, context: &str) -> Self {
+        self.msg = context.to_owned() + &self.msg;
         self
     }
 }
