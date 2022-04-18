@@ -14,7 +14,7 @@ fn main() -> Result<(), ToipeError> {
     loop {
         let stdin = stdin.lock();
         if let Ok((true, _)) = toipe.test(stdin) {
-            toipe.restart().unwrap();
+            toipe.restart()?;
         } else {
             break;
         }

@@ -409,15 +409,17 @@ impl ToipeTui {
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
 
-        if lines.len() + self.bottom_lines_len + 1 >= terminal_height.into() {
+        if lines.len() + self.bottom_lines_len + 1 >= terminal_height as usize {
             return Err(ToipeError::from(format!(
-                "toipe requires atleast {} lines in your terminal",
-                lines.len() + self.bottom_lines_len + 1
+                "Terminal height is too short! Toipe requires at least {} lines, got {} lines",
+                lines.len() + self.bottom_lines_len + 1,
+                terminal_height,
             )));
-        } else if max_word_len >= max_width.into() {
+        } else if max_word_len >= max_width as usize {
             return Err(ToipeError::from(format!(
-                "toipe requires atleast {} columns in your terminal",
-                max_word_len
+                "Terminal width is too low! Toipe requires at least {} columns, got {} columns",
+                max_word_len,
+                max_width,
             )));
         }
 
@@ -522,6 +524,8 @@ impl Drop for ToipeTui {
     /// Clears screen and sets the cursor to a non-blinking block.
     ///
     /// TODO: reset cursor to whatever it was before Toipe was started.
+    /// TODO: print error message when terminal height/width is too small.
+    /// Take a look at https://github.com/Samyak2/toipe/pull/28#discussion_r851784291 for more info.
     fn drop(&mut self) {
         write!(
             self.stdout,
