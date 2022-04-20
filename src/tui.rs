@@ -418,8 +418,7 @@ impl ToipeTui {
         } else if max_word_len >= max_width as usize {
             return Err(ToipeError::from(format!(
                 "Terminal width is too low! Toipe requires at least {} columns, got {} columns",
-                max_word_len,
-                max_width,
+                max_word_len, max_width,
             )));
         }
 
