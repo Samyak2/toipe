@@ -15,6 +15,8 @@ use termion::{
 
 use crate::ToipeError;
 
+const MIN_LINE_WIDTH: usize = 50;
+
 /// Describes something that has a printable length.
 ///
 /// For example, a string containing color characters has a different
@@ -408,7 +410,7 @@ impl ToipeTui {
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
 
-        max_word_len = std::cmp::max(max_word_len + 1, 50);
+        max_word_len = std::cmp::max(max_word_len + 1, MIN_LINE_WIDTH);
         if lines.len() + self.bottom_lines_len + 2 > terminal_height as usize {
             return Err(ToipeError::from(format!(
                 "Terminal height is too short! Toipe requires at least {} lines, got {} lines",
