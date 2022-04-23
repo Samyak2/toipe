@@ -397,8 +397,7 @@ impl ToipeTui {
                 lines.push(Text::from(line.join(" ") + " ").with_faint());
 
                 // clear line
-                line = Vec::new();
-                line.push(word.clone());
+                line = vec![word.clone()];
                 current_len = word.len() as u16 + 1;
             }
         }
@@ -409,17 +408,17 @@ impl ToipeTui {
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
 
+        max_word_len = std::cmp::max(max_word_len + 1, 50);
         if lines.len() + self.bottom_lines_len + 2 > terminal_height as usize {
             return Err(ToipeError::from(format!(
                 "Terminal height is too short! Toipe requires at least {} lines, got {} lines",
                 lines.len() + self.bottom_lines_len + 2,
                 terminal_height,
             )));
-        } else if max_word_len + 1 > max_width as usize {
+        } else if max_word_len > max_width as usize {
             return Err(ToipeError::from(format!(
                 "Terminal width is too low! Toipe requires at least {} columns, got {} columns",
-                max_word_len + 1,
-                max_width,
+                max_word_len, max_width,
             )));
         }
 
