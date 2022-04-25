@@ -15,6 +15,8 @@ use termion::{
 
 use crate::ToipeError;
 
+const MIN_LINE_WIDTH: usize = 50;
+
 /// Describes something that has a printable length.
 ///
 /// For example, a string containing color characters has a different
@@ -223,6 +225,7 @@ pub struct ToipeTui {
     stdout: RawTerminal<Stdout>,
     cursor_pos: CursorPos,
     track_lines: bool,
+    bottom_lines_len: usize,
 }
 
 type MaybeError<T = ()> = Result<T, ToipeError>;
@@ -236,6 +239,7 @@ impl ToipeTui {
             stdout: stdout().into_raw_mode().unwrap(),
             cursor_pos: CursorPos::new(),
             track_lines: false,
+            bottom_lines_len: 0,
         }
     }
 
@@ -353,6 +357,7 @@ impl ToipeTui {
         let (sizex, sizey) = terminal_size()?;
 
         let line_offset = lines.len() as u16;
+        self.bottom_lines_len = lines.len();
 
         for (line_no, line) in lines.iter().enumerate() {
             write!(
@@ -371,15 +376,17 @@ impl ToipeTui {
     pub fn display_words(&mut self, words: &[String]) -> MaybeError<Vec<Text>> {
         self.reset();
         let mut current_len = 0;
+        let mut max_word_len = 0;
         let mut line = Vec::new();
         let mut lines = Vec::new();
-        let (terminal_width, _) = terminal_size()?;
+        let (terminal_width, terminal_height) = terminal_size()?;
         // 40% of terminal width
         let max_width = terminal_width * 2 / 5;
         const MAX_WORDS_PER_LINE: usize = 10;
         // eprintln!("max width is {}", max_width);
 
         for word in words {
+            max_word_len = std::cmp::max(max_word_len, word.len() + 1);
             let new_len = current_len + word.len() as u16 + 1;
             if line.len() < MAX_WORDS_PER_LINE && new_len <= max_width {
                 // add to line
@@ -392,8 +399,8 @@ impl ToipeTui {
                 lines.push(Text::from(line.join(" ") + " ").with_faint());
 
                 // clear line
-                line = Vec::new();
-                current_len = 0;
+                line = vec![word.clone()];
+                current_len = word.len() as u16 + 1;
             }
         }
 
@@ -402,6 +409,20 @@ impl ToipeTui {
         //   - the typing test stops as soon as the user types last char
         //   - won't hang there waiting for user to type space
         lines.push(Text::from(line.join(" ")).with_faint());
+
+        max_word_len = std::cmp::max(max_word_len + 1, MIN_LINE_WIDTH);
+        if lines.len() + self.bottom_lines_len + 2 > terminal_height as usize {
+            return Err(ToipeError::from(format!(
+                "Terminal height is too short! Toipe requires at least {} lines, got {} lines",
+                lines.len() + self.bottom_lines_len + 2,
+                terminal_height,
+            )));
+        } else if max_word_len > max_width as usize {
+            return Err(ToipeError::from(format!(
+                "Terminal width is too low! Toipe requires at least {} columns, got {} columns",
+                max_word_len, max_width,
+            )));
+        }
 
         self.track_lines = true;
         self.display_lines(
@@ -504,6 +525,8 @@ impl Drop for ToipeTui {
     /// Clears screen and sets the cursor to a non-blinking block.
     ///
     /// TODO: reset cursor to whatever it was before Toipe was started.
+    /// TODO: print error message when terminal height/width is too small.
+    /// Take a look at https://github.com/Samyak2/toipe/pull/28#discussion_r851784291 for more info.
     fn drop(&mut self) {
         write!(
             self.stdout,

@@ -38,7 +38,6 @@ pub struct Toipe {
 }
 
 /// Represents any error caught in Toipe.
-#[derive(Debug)]
 pub struct ToipeError {
     pub msg: String,
 }
@@ -54,6 +53,18 @@ impl From<std::io::Error> for ToipeError {
         ToipeError {
             msg: error.to_string(),
         }
+    }
+}
+
+impl From<String> for ToipeError {
+    fn from(error: String) -> Self {
+        ToipeError { msg: error }
+    }
+}
+
+impl std::fmt::Debug for ToipeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(format!("ToipeError: {}", self.msg).as_str())
     }
 }
 
