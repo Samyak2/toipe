@@ -2,17 +2,41 @@
 
 use clap::ArgEnum;
 
-/// Word lists with top English words (by frequency)
+/// Word lists with top English words.
 ///
-/// [Source](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
+/// See [variants](#variants) for details on each word list.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 pub enum BuiltInWordlist {
+    /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top250,
+
+    /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top500,
+
+    /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top1000,
+
+    /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top2500,
+
+    /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top5000,
-    // The operating system's builtin word list
+
+    /// Source: [Monkeytype](https://github.com/monkeytypegame/monkeytype/blob/89f160f664a9e24a6d5a99f12ce0bd5a1b093b2a/frontend/static/languages/english_10k.json)
+    /// (English 10k list)
+    Top10000,
+
+    /// Source: [Monkeytype](https://github.com/monkeytypegame/monkeytype/blob/89f160f664a9e24a6d5a99f12ce0bd5a1b093b2a/frontend/static/languages/english_25k.json)
+    /// (English 25k list)
+    Top25000,
+
+    /// Source: [Monkeytype](https://github.com/monkeytypegame/monkeytype/blob/89f160f664a9e24a6d5a99f12ce0bd5a1b093b2a/frontend/static/languages/english_commonly_misspelled.json)
+    /// (Commonly misspelled English list)
+    CommonlyMisspelled,
+
+    /// The operating system's builtin word list.
+    ///
+    /// See [`OS_WORDLIST_PATH`].
     OS,
 }
 
@@ -28,6 +52,9 @@ impl BuiltInWordlist {
             Self::Top1000 => Some(include_str!("word_lists/top1000")),
             Self::Top2500 => Some(include_str!("word_lists/top2500")),
             Self::Top5000 => Some(include_str!("word_lists/top5000")),
+            Self::Top10000 => Some(include_str!("word_lists/top10000")),
+            Self::Top25000 => Some(include_str!("word_lists/top25000")),
+            Self::CommonlyMisspelled => Some(include_str!("word_lists/commonly_misspelled")),
             Self::OS => None,
         }
     }
