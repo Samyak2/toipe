@@ -1,6 +1,5 @@
 use std::time::{Duration, Instant};
 
-// TODO: document these fields
 /// Stores stats from a typing test.
 #[derive(Clone)]
 pub struct ToipeResults {
