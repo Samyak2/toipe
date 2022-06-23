@@ -325,9 +325,9 @@ impl<'a> Toipe {
         let mut to_restart: Option<bool> = None;
         while to_restart.is_none() {
             match keys.next().unwrap()? {
-                // press 'r' to restart
+                // press ctrl + 'r' to restart
                 Key::Ctrl('r') => to_restart = Some(true),
-                // press 'q' to quit
+                // press ctrl + 'c' to quit
                 Key::Ctrl('c') => to_restart = Some(false),
                 _ => {}
             }
