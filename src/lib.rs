@@ -45,7 +45,7 @@ pub struct ToipeError {
 
 impl ToipeError {
     /// Prefixes the message with a context
-    pub fn with_context(mut self: Self, context: &str) -> Self {
+    pub fn with_context(mut self, context: &str) -> Self {
         self.msg = context.to_owned() + &self.msg;
         self
     }
