@@ -499,7 +499,7 @@ impl ToipeTui {
         Ok(())
     }
 
-    /// Moves the cursor to cur_pos
+    /// Moves the cursor to just before the character to be typed next
     pub fn move_to_cur_pos(&mut self) -> MaybeError {
         let (x, y) = self.cursor_pos.cur_pos();
         write!(self.stdout, "{}", cursor::Goto(x, y))?;
