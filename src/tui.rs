@@ -483,7 +483,7 @@ impl ToipeTui {
         Ok(())
     }
 
-    // TODO: document this
+    /// Moves the cursor to the next char
     pub fn move_to_next_char(&mut self) -> MaybeError {
         let (x, y) = self.cursor_pos.next();
         write!(self.stdout, "{}", cursor::Goto(x, y))?;
@@ -491,7 +491,7 @@ impl ToipeTui {
         Ok(())
     }
 
-    // TODO: document this
+    /// Moves the cursor to the previous char
     pub fn move_to_prev_char(&mut self) -> MaybeError {
         let (x, y) = self.cursor_pos.prev();
         write!(self.stdout, "{}", cursor::Goto(x, y))?;
@@ -499,7 +499,7 @@ impl ToipeTui {
         Ok(())
     }
 
-    // TODO: document this
+    /// Moves the cursor to just before the character to be typed next
     pub fn move_to_cur_pos(&mut self) -> MaybeError {
         let (x, y) = self.cursor_pos.cur_pos();
         write!(self.stdout, "{}", cursor::Goto(x, y))?;
@@ -507,7 +507,7 @@ impl ToipeTui {
         Ok(())
     }
 
-    // TODO: document this
+    /// Returns the current line the cursor is on
     pub fn current_line(&self) -> usize {
         self.cursor_pos.cur_line
     }
@@ -524,7 +524,6 @@ impl Drop for ToipeTui {
     ///
     /// Clears screen and sets the cursor to a non-blinking block.
     ///
-    /// TODO: reset cursor to whatever it was before Toipe was started.
     /// TODO: print error message when terminal height/width is too small.
     /// Take a look at https://github.com/Samyak2/toipe/pull/28#discussion_r851784291 for more info.
     fn drop(&mut self) {
