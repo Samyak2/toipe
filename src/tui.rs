@@ -14,6 +14,7 @@ use termion::{
 };
 
 use crate::ToipeError;
+use anyhow::Result;
 
 const MIN_LINE_WIDTH: usize = 50;
 
@@ -228,7 +229,7 @@ pub struct ToipeTui {
     bottom_lines_len: usize,
 }
 
-type MaybeError<T = ()> = Result<T, ToipeError>;
+type MaybeError<T = ()> = Result<T>;
 
 impl ToipeTui {
     /// Initializes stdout in raw mode for the TUI.
@@ -416,12 +417,14 @@ impl ToipeTui {
                 "Terminal height is too short! Toipe requires at least {} lines, got {} lines",
                 lines.len() + self.bottom_lines_len + 2,
                 terminal_height,
-            )));
+            ))
+            .into());
         } else if max_word_len > terminal_width as usize {
             return Err(ToipeError::from(format!(
                 "Terminal width is too low! Toipe requires at least {} columns, got {} columns",
                 max_word_len, terminal_width,
-            )));
+            ))
+            .into());
         }
 
         self.track_lines = true;
