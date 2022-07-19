@@ -58,13 +58,13 @@ impl BuiltInWordlist {
     /// Reading the file can take time (and memory) as the file can be large.
     pub fn contents(&self) -> Option<&'static str> {
         match self {
-            Self::Top250    => Some(&TOP_250),
-            Self::Top500    => Some(&TOP_500),
-            Self::Top1000   => Some(&TOP_1000),
-            Self::Top2500   => Some(&TOP_2500),
-            Self::Top5000   => Some(&TOP_5000),
-            Self::Top10000  => Some(&TOP_10000),
-            Self::Top25000  => Some(&TOP_25000),
+            Self::Top250 => Some(&TOP_250),
+            Self::Top500 => Some(&TOP_500),
+            Self::Top1000 => Some(&TOP_1000),
+            Self::Top2500 => Some(&TOP_2500),
+            Self::Top5000 => Some(&TOP_5000),
+            Self::Top10000 => Some(&TOP_10000),
+            Self::Top25000 => Some(&TOP_25000),
             Self::CommonlyMisspelled => Some(&TOP_MISSPELLED),
             Self::OS => None,
         }
