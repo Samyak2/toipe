@@ -1,6 +1,15 @@
 //! Built-in wordlists, system wordlist and utils for retrieving them.
-
 use clap::ArgEnum;
+use include_flate::flate;
+
+flate!(static TOP_250: str          from "src/word_lists/top250");
+flate!(static TOP_500: str          from "src/word_lists/top500");
+flate!(static TOP_1000: str         from "src/word_lists/top1000");
+flate!(static TOP_2500: str         from "src/word_lists/top2500");
+flate!(static TOP_5000: str         from "src/word_lists/top5000");
+flate!(static TOP_10000: str        from "src/word_lists/top10000");
+flate!(static TOP_25000: str        from "src/word_lists/top25000");
+flate!(static TOP_MISSPELLED: str   from "src/word_lists/commonly_misspelled");
 
 /// Word lists with top English words.
 ///
@@ -47,14 +56,14 @@ impl BuiltInWordlist {
     /// Reading the file can take time (and memory) as the file can be large.
     pub fn contents(&self) -> Option<&'static str> {
         match self {
-            Self::Top250 => Some(include_str!("word_lists/top250")),
-            Self::Top500 => Some(include_str!("word_lists/top500")),
-            Self::Top1000 => Some(include_str!("word_lists/top1000")),
-            Self::Top2500 => Some(include_str!("word_lists/top2500")),
-            Self::Top5000 => Some(include_str!("word_lists/top5000")),
-            Self::Top10000 => Some(include_str!("word_lists/top10000")),
-            Self::Top25000 => Some(include_str!("word_lists/top25000")),
-            Self::CommonlyMisspelled => Some(include_str!("word_lists/commonly_misspelled")),
+            Self::Top250 => Some(&TOP_250),
+            Self::Top500 => Some(&TOP_500),
+            Self::Top1000 => Some(&TOP_1000),
+            Self::Top2500 => Some(&TOP_2500),
+            Self::Top5000 => Some(&TOP_5000),
+            Self::Top10000 => Some(&TOP_10000),
+            Self::Top25000 => Some(&TOP_25000),
+            Self::CommonlyMisspelled => Some(&TOP_MISSPELLED),
             Self::OS => None,
         }
     }
