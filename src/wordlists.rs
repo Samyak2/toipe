@@ -1,6 +1,4 @@
 //! Built-in wordlists, system wordlist and utils for retrieving them.
-// #![cfg_attr(not(feature = "stable"), feature(proc_macro_hygiene))]
-
 use clap::ArgEnum;
 use include_flate::flate;
 
