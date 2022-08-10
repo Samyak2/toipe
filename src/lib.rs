@@ -16,12 +16,11 @@ pub mod textgen;
 pub mod tui;
 pub mod wordlists;
 
-use std::io::StdinLock;
-use std::path::PathBuf;
-use std::time::Instant;
-
+use chrono::Local;
 use config::ToipeConfig;
 use results::ToipeResults;
+use std::io::StdinLock;
+use std::path::PathBuf;
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
@@ -234,7 +233,7 @@ impl<'a> Toipe {
         // read first key
         let key = keys.next().unwrap()?;
         // start the timer
-        let started_at = Instant::now();
+        let started_at = Local::now();
         // process first key
         let mut status = process_key(key)?;
 
@@ -248,7 +247,7 @@ impl<'a> Toipe {
         }
 
         // stop the timer
-        let ended_at = Instant::now();
+        let ended_at = Local::now();
 
         let (final_chars_typed_correctly, final_uncorrected_errors) =
             input.iter().zip(original_text.iter()).fold(
@@ -293,7 +292,7 @@ impl<'a> Toipe {
         self.tui.display_lines::<&[Text], _>(&[
             &[Text::from(format!(
                 "Took {}s for {} words of {}",
-                results.duration().as_secs(),
+                results.duration_seconds(),
                 results.total_words,
                 self.config.text_name(),
             ))],
