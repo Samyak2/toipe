@@ -30,6 +30,9 @@ pub struct ToipeConfig {
     /// Number of words to show on each test.
     #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
+    /// The file path to save results to
+    #[clap(short, long)]
+    pub results_file: Option<String>,
 }
 
 impl ToipeConfig {
