@@ -18,7 +18,9 @@ pub mod wordlists;
 
 use chrono::Local;
 use config::ToipeConfig;
+use csv::WriterBuilder;
 use results::ToipeResults;
+use std::fs::OpenOptions;
 use std::io::StdinLock;
 use std::path::PathBuf;
 use termion::input::Keys;
@@ -74,7 +76,7 @@ impl<'a> Toipe {
     ///
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
-    pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
+    pub fn new(mut config: ToipeConfig) -> Result<Self, ToipeError> {
         let word_selector: Box<dyn WordSelector> =
             if let Some(wordlist_path) = config.wordlist_file.clone() {
                 Box::new(RawWordSelector::from_path(PathBuf::from(wordlist_path))?)
@@ -89,6 +91,13 @@ impl<'a> Toipe {
                     msg: "Undefined word list or path.".to_string(),
                 });
             };
+
+        if config.results_file.is_none() {
+            config.results_file = match std::env::var("TOIPE_RESULTS_FILE") {
+                Ok(results_file_env) => Some(results_file_env),
+                Err(_) => None,
+            }
+        }
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
@@ -274,12 +283,32 @@ impl<'a> Toipe {
         };
 
         let to_restart = if status.to_display_results() {
+            match self.save_results(results.clone()) {
+                Ok(_) => {}
+                Err(_) => {
+                    return Err(ToipeError {
+                        msg: "Unable to write results!".to_string(),
+                    });
+                }
+            }
             self.display_results(results.clone(), keys)?
         } else {
             status.to_restart()
         };
 
         Ok((to_restart, results))
+    }
+
+    fn save_results(&self, results: ToipeResults) -> Result<(), std::io::Error> {
+        if let Some(results_file) = &self.config.results_file {
+            let file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(results_file)?;
+            let mut writer = WriterBuilder::new().has_headers(false).from_writer(file);
+            writer.serialize(results)?;
+        }
+        Ok(())
     }
 
     fn display_results(

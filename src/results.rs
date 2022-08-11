@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Local};
 
 /// Stores stats from a typing test.
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize)]
 pub struct ToipeResults {
     /// number of words in given text
     pub total_words: usize,
