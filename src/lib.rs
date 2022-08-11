@@ -20,9 +20,9 @@ use chrono::Local;
 use config::ToipeConfig;
 use csv::WriterBuilder;
 use results::ToipeResults;
-use std::fs::OpenOptions;
-use std::io::StdinLock;
-use std::path::PathBuf;
+use std::fs::{File, OpenOptions};
+use std::io::{self, StdinLock};
+use std::path::{Path, PathBuf};
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
@@ -301,11 +301,25 @@ impl<'a> Toipe {
 
     fn save_results(&self, results: ToipeResults) -> Result<(), std::io::Error> {
         if let Some(results_file) = &self.config.results_file {
-            let file = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(results_file)?;
-            let mut writer = WriterBuilder::new().has_headers(false).from_writer(file);
+            fn get_file(results_file: &String) -> Result<File, std::io::Error> {
+                OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(results_file)
+            }
+
+            let mut writer = if Path::new(results_file).exists() {
+                // Do not add headers, only want them at the top of the file
+                WriterBuilder::default()
+                    .has_headers(false)
+                    .from_writer(get_file(results_file)?)
+            } else {
+                // Add headers, this is the first write
+                WriterBuilder::new()
+                    .has_headers(true)
+                    .from_writer(get_file(results_file)?)
+            };
+
             writer.serialize(results)?;
         }
         Ok(())
