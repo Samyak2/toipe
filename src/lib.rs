@@ -21,7 +21,7 @@ use config::ToipeConfig;
 use csv::WriterBuilder;
 use results::ToipeResults;
 use std::fs::{File, OpenOptions};
-use std::io::{self, StdinLock};
+use std::io::StdinLock;
 use std::path::{Path, PathBuf};
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
