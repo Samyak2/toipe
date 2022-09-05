@@ -266,7 +266,7 @@ impl ToipeTui {
             "{}{}{}",
             clear::All,
             cursor::Goto(sizex / 2, sizey / 2),
-            cursor::BlinkingBar
+            cursor::Show,
         )?;
         self.flush()?;
 
@@ -531,7 +531,7 @@ impl Drop for ToipeTui {
             self.stdout,
             "{}{}{}",
             clear::All,
-            cursor::SteadyBlock,
+            cursor::Show,
             cursor::Goto(1, 1)
         )
         .expect("Could not reset terminal while exiting");

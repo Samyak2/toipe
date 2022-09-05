@@ -75,7 +75,7 @@ impl<T: Seek + io::Read> RawWordSelector<T> {
         let mut buffer = String::new();
 
         fn is_letter(char: u8) -> bool {
-            (b'a'..=b'z').contains(&char)
+            (b'a'..b'z').contains(&char)
         }
 
         loop {
