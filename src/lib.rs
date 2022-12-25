@@ -183,13 +183,13 @@ impl<'a> Toipe {
                     return Ok(TestStatus::Restart);
                 }
                 Key::Ctrl('w') | Key::Ctrl('h') => {
+                    // delete space if it is a last char
+                    if matches!(input.last(), Some(' ') | None) {
+                        self.delete_last_char(&mut input, &original_text)?;
+                    }
                     // delete last word
                     while !matches!(input.last(), Some(' ') | None) {
-                        if input.pop().is_some() {
-                            self.tui.replace_text(
-                                Text::from(original_text[input.len()]).with_faint(),
-                            )?;
-                        }
+                        self.delete_last_char(&mut input, &original_text)?;
                     }
                 }
                 Key::Char(c) => {
@@ -281,6 +281,18 @@ impl<'a> Toipe {
         };
 
         Ok((to_restart, results))
+    }
+
+    fn delete_last_char(
+        &mut self,
+        input: &mut Vec<char>,
+        original_text: &Vec<char>,
+    ) -> Result<(), ToipeError> {
+        if input.pop().is_some() {
+            self.tui
+                .replace_text(Text::from(original_text[input.len()]).with_faint())?;
+        }
+        Ok(())
     }
 
     fn display_results(
