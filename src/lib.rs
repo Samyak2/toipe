@@ -286,7 +286,7 @@ impl<'a> Toipe {
     fn delete_last_char(
         &mut self,
         input: &mut Vec<char>,
-        original_text: &Vec<char>,
+        original_text: &[char],
     ) -> Result<(), ToipeError> {
         if input.pop().is_some() {
             self.tui
