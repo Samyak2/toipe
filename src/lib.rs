@@ -182,7 +182,7 @@ impl<'a> Toipe {
                 Key::Ctrl('r') => {
                     return Ok(TestStatus::Restart);
                 }
-                Key::Ctrl('w') => {
+                Key::Ctrl('w') | Key::Ctrl('h') => {
                     // delete last word
                     while !matches!(input.last(), Some(' ') | None) {
                         if input.pop().is_some() {
