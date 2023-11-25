@@ -77,6 +77,25 @@ You can provide your own word list too (Note: the word list must meet [these ass
 toipe -f /path/to/word/list
 ```
 
+## Save Results
+
+By default results are not saved. To enable result saves either pass the `-r` flag and a valid path or use the environment variable: `TOIPE_RESULTS_FILE` set to a given file path you'd like to save results to.
+
+For example:
+
+```
+toipe -r save_results.csv
+```
+
+Or, with an environment variable in a Bash shell:
+
+```bash
+export TOIPE_RESULTS_FILE="${HOME}/.toipe-results"
+toipe
+```
+
+Toipe outputs its saved results in `csv` format.
+
 # Platform support
 
 - toipe was only tested on Linux. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
