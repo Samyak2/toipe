@@ -229,9 +229,7 @@ pub trait WordSelector {
 
     /// Returns a [`Vec`] containing `num_words` words.
     fn new_words(&mut self, num_words: usize) -> Result<Vec<String>, io::Error> {
-        (0..num_words)
-            .map(|_| self.new_word())
-            .collect()
+        (0..num_words).map(|_| self.new_word()).collect()
     }
 }
 
