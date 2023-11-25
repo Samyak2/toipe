@@ -215,7 +215,7 @@ impl<'a> Toipe {
                         num_errors += 1;
                     }
                 }
-                Key::Backspace => {
+                Key::Backspace | Key::Ctrl('h') => {
                     if input.pop().is_some() {
                         self.tui
                             .replace_text(Text::from(original_text[input.len()]).with_faint())?;
