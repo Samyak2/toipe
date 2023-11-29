@@ -10,6 +10,7 @@
 //! See [`RawWordSelector`] if you're looking for the word selection
 //! algorithm.
 
+pub mod book;
 pub mod config;
 pub mod results;
 pub mod textgen;
@@ -27,6 +28,8 @@ use termion::{color, event::Key, input::TermRead};
 use textgen::{RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
 use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
+
+use crate::book::BookSelector;
 
 /// Typing test terminal UI and logic.
 pub struct Toipe {
@@ -79,6 +82,8 @@ impl<'a> Toipe {
         let word_selector: Box<dyn WordSelector> =
             if let Some(wordlist_path) = config.wordlist_file.clone() {
                 Box::new(RawWordSelector::from_path(PathBuf::from(wordlist_path))?)
+            } else if let Some(bookfile_path) = config.book_file.clone() {
+                Box::new(BookSelector::from_path(PathBuf::from(bookfile_path))?)
             } else if let Some(word_list) = config.wordlist.contents() {
                 Box::new(RawWordSelector::from_string(word_list.to_string())?)
             } else if let BuiltInWordlist::OS = config.wordlist {
