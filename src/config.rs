@@ -30,6 +30,11 @@ pub struct ToipeConfig {
     /// Number of words to show on each test.
     #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
+    /// Path to custom book file
+    ///
+    /// This argument cannot be used along with `-w`/`--wordlist`
+    #[clap(short = 'b', long = "bookfile", conflicts_with = "wordlist")]
+    pub book_file: Option<String>,
 }
 
 impl ToipeConfig {
