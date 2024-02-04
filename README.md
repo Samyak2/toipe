@@ -64,7 +64,7 @@ toipe -n 100
 
 ## Use a different word list
 
-By default, a list of top 250 English words (`top250`) is used and random words are selected from it. See `toipe -w` for a list of available built-in word lists.
+By default, a list of top 250 English words (`top250`) is used and random words are selected from it. See `toipe -h` for a list of available built-in word lists.
 
 To use the OS provided word list instead, use:
 ```
@@ -79,7 +79,7 @@ toipe -f /path/to/word/list
 
 # Platform support
 
-- toipe was only tested on Linux. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
+- toipe was only tested on Linux and Mac OS. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).
 - Windows is not supported yet. Follow [this issue](https://github.com/Samyak2/toipe/issues/14) for updates. It should work on WSL though.
 
 # License
