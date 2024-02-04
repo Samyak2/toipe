@@ -32,6 +32,10 @@ impl ToipeResults {
 
     /// Percentage of letters that were typed correctly.
     pub fn accuracy(&self) -> f64 {
+        if self.total_chars_typed == 0 {
+            return 0.0;
+        }
+
         (self.total_chars_typed as isize - self.total_char_errors as isize) as f64
             / self.total_chars_typed as f64
     }
