@@ -98,7 +98,7 @@ impl<'a> Toipe {
             Box::new(
                 RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH)).with_context(|| {
                     format!(
-                        "reading from the OS wordlist at path '{}'",
+                        "reading from the OS wordlist at path '{}'. See https://en.wikipedia.org/wiki/Words_(Unix) for more info on this file and how it can be installed.",
                         OS_WORDLIST_PATH
                     )
                 })?,
