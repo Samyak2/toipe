@@ -6,14 +6,11 @@
 //! Toipe provides an API to invoke it from another application or
 //! library. This documentation describes the API and algorithms used
 //! internally.
-//!
-//! See [`RawWordSelector`] if you're looking for the word selection
-//! algorithm.
 
 pub mod config;
 pub mod results;
-pub mod textgen;
 pub mod tui;
+pub mod word_selector;
 pub mod wordlists;
 
 use std::io::StdinLock;
@@ -24,8 +21,9 @@ use config::ToipeConfig;
 use results::ToipeResults;
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
-use textgen::{RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
+use word_selector::ascii_raw::AsciiSortedWordSelector;
+use word_selector::WordSelector;
 use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
 
 use anyhow::{Context, Result};
@@ -80,19 +78,19 @@ impl<'a> Toipe {
             config.wordlist_file.clone()
         {
             Box::new(
-                RawWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
+                AsciiSortedWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
                     || format!("reading the word list from given path '{}'", wordlist_path),
                 )?,
             )
         } else if let Some(word_list) = config.wordlist.contents() {
             Box::new(
-                RawWordSelector::from_string(word_list.to_string()).with_context(|| {
+                AsciiSortedWordSelector::from_string(word_list.to_string()).with_context(|| {
                     format!("reading the built-in word list {:?}", config.wordlist)
                 })?,
             )
         } else if let BuiltInWordlist::OS = config.wordlist {
             Box::new(
-                RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH)).with_context(|| {
+                AsciiSortedWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH)).with_context(|| {
                     format!(
                         "reading from the OS wordlist at path '{}'. See https://en.wikipedia.org/wiki/Words_(Unix) for more info on this file and how it can be installed.",
                         OS_WORDLIST_PATH

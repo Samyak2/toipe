@@ -10,6 +10,8 @@ use rand::Rng;
 use bisection::bisect_right;
 use rand::prelude::ThreadRng;
 
+use super::WordSelector;
+
 /// Efficient selector of words from a word list.
 ///
 /// The word list is given by a BufReader.
@@ -31,7 +33,7 @@ use rand::prelude::ThreadRng;
 ///
 /// ### Algorithm
 ///
-/// During initialization, the [`RawWordSelector`] iterates through all
+/// During initialization, the [`AsciiSortedWordSelector`] iterates through all
 /// the words in the list and builds an index mapping each letter (of
 /// the alphabet) to its byte position in the file and the cumulative
 /// number of words present starting with it.
@@ -55,17 +57,17 @@ use rand::prelude::ThreadRng;
 ///
 /// `O(1)` (only needs fixed length arrays).
 #[derive(Debug)]
-pub struct RawWordSelector<T> {
+pub struct AsciiSortedWordSelector<T> {
     reader: BufReader<T>,
     letter_pos: [u64; 26],
     letter_lines_sum: [u64; 27],
 }
 
-impl<T: Seek + io::Read> RawWordSelector<T> {
+impl<T: Seek + io::Read> AsciiSortedWordSelector<T> {
     /// Create from any arbitrary [`BufReader`].
     ///
     /// Please ensure that assumptions defined at
-    /// [`RawWordSelector#assumptions`] are valid for the contents.
+    /// [`AsciiSortedWordSelector#assumptions`] are valid for the contents.
     pub fn new(mut reader: BufReader<T>) -> Result<Self, io::Error> {
         let mut letter_pos = [0u64; 26];
         let mut letter_lines = [0u64; 26];
@@ -195,11 +197,11 @@ impl<T: Seek + io::Read> RawWordSelector<T> {
     }
 }
 
-impl RawWordSelector<File> {
+impl AsciiSortedWordSelector<File> {
     /// Create from a file at a path given by a [`PathBuf`].
     ///
     /// Please ensure that assumptions defined at
-    /// [`RawWordSelector#assumptions`] are valid for this file.
+    /// [`AsciiSortedWordSelector#assumptions`] are valid for this file.
     pub fn from_path(word_list_path: PathBuf) -> Result<Self, io::Error> {
         let file = File::open(word_list_path)?;
 
@@ -209,31 +211,20 @@ impl RawWordSelector<File> {
     }
 }
 
-impl RawWordSelector<Cursor<String>> {
+impl AsciiSortedWordSelector<Cursor<String>> {
     /// Create from a String representing the word list file.
     ///
     /// Please ensure that assumptions defined at
-    /// [`RawWordSelector#assumptions`] are valid for the contents.
+    /// [`AsciiSortedWordSelector#assumptions`] are valid for the contents.
     pub fn from_string(word_list: String) -> Result<Self, io::Error> {
         let cursor = Cursor::new(word_list);
         let reader = BufReader::new(cursor);
 
-        RawWordSelector::new(reader)
+        AsciiSortedWordSelector::new(reader)
     }
 }
 
-/// Describes a thing that provides new words.
-pub trait WordSelector {
-    /// Returns a new word.
-    fn new_word(&mut self) -> Result<String, io::Error>;
-
-    /// Returns a [`Vec`] containing `num_words` words.
-    fn new_words(&mut self, num_words: usize) -> Result<Vec<String>, io::Error> {
-        (0..num_words).map(|_| self.new_word()).collect()
-    }
-}
-
-impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
+impl<T: Seek + io::Read> WordSelector for AsciiSortedWordSelector<T> {
     fn new_word(&mut self) -> Result<String, io::Error> {
         let mut rng = rand::thread_rng();
 
