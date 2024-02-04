@@ -47,7 +47,7 @@ impl ToipeResults {
     /// Uncorrected errors are penalized to encourage correcting errors.
     pub fn wpm(&self) -> f64 {
         (self.final_chars_typed_correctly as f64 / 5.0 - self.final_uncorrected_errors as f64)
-            .max(0.0) as f64
+            .max(0.0)
             / (self.duration().as_secs_f64() / 60.0)
     }
 }

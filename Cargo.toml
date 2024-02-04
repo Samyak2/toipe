@@ -27,3 +27,4 @@ bisection = "0.1.0"
 clap = { version = "3.0.5", features = ["derive", "color", "suggestions"] }
 rand = "0.8.4"
 termion = "1.5.6"
+include-flate = {version ="0.1.4", features=["stable"]}

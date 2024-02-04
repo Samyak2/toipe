@@ -24,9 +24,8 @@ pub struct ToipeConfig {
     pub wordlist: BuiltInWordlist,
     /// Path to custom word list file.
     ///
-    /// Providing this will override `-w`/`--wordlist`.
-    // TODO: find a way to ensure `-w` isn't provided along with this.
-    #[clap(short = 'f', long = "file")]
+    /// This argument cannot be used along with `-w`/`--wordlist`
+    #[clap(short = 'f', long = "file", conflicts_with = "wordlist")]
     pub wordlist_file: Option<String>,
     /// Number of words to show on each test.
     #[clap(short, long, default_value_t = 30)]
