@@ -80,12 +80,7 @@ impl<'a> Toipe {
         {
             Box::new(
                 RawWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
-                    || {
-                        format!(
-                            "reading the word list from given path '{}'",
-                            wordlist_path
-                        )
-                    },
+                    || format!("reading the word list from given path '{}'", wordlist_path),
                 )?,
             )
         } else if let Some(word_list) = config.wordlist.contents() {
