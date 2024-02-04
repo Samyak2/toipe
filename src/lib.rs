@@ -28,6 +28,8 @@ use textgen::{RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
 use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
 
+use anyhow::{Context, Result};
+
 /// Typing test terminal UI and logic.
 pub struct Toipe {
     tui: ToipeTui,
@@ -38,21 +40,17 @@ pub struct Toipe {
 }
 
 /// Represents any error caught in Toipe.
+#[derive(Debug)]
 pub struct ToipeError {
+    /// Error message. Should not start with "error" or similar.
     pub msg: String,
 }
 
-/// Converts [`std::io::Error`] to [`ToipeError`].
-///
-/// This keeps only the error message.
-///
-/// TODO: there must be a better way to keep information from the
-/// original error.
-impl From<std::io::Error> for ToipeError {
-    fn from(error: std::io::Error) -> Self {
-        ToipeError {
-            msg: error.to_string(),
-        }
+impl ToipeError {
+    /// Prefixes the message with a context
+    pub fn with_context(mut self, context: &str) -> Self {
+        self.msg = context.to_owned() + &self.msg;
+        self
     }
 }
 
@@ -62,11 +60,13 @@ impl From<String> for ToipeError {
     }
 }
 
-impl std::fmt::Debug for ToipeError {
+impl std::fmt::Display for ToipeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(format!("ToipeError: {}", self.msg).as_str())
     }
 }
+
+impl std::error::Error for ToipeError {}
 
 impl<'a> Toipe {
     /// Initializes a new typing test on the standard output.
@@ -75,21 +75,35 @@ impl<'a> Toipe {
     ///
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
-    pub fn new(config: ToipeConfig) -> Result<Self, ToipeError> {
-        let word_selector: Box<dyn WordSelector> =
-            if let Some(wordlist_path) = config.wordlist_file.clone() {
-                Box::new(RawWordSelector::from_path(PathBuf::from(wordlist_path))?)
-            } else if let Some(word_list) = config.wordlist.contents() {
-                Box::new(RawWordSelector::from_string(word_list.to_string())?)
-            } else if let BuiltInWordlist::OS = config.wordlist {
-                Box::new(RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH))?)
-            } else {
-                // this should never happen!
-                // TODO: somehow enforce this at compile time?
-                return Err(ToipeError {
-                    msg: "Undefined word list or path.".to_string(),
-                });
-            };
+    pub fn new(config: ToipeConfig) -> Result<Self> {
+        let word_selector: Box<dyn WordSelector> = if let Some(wordlist_path) =
+            config.wordlist_file.clone()
+        {
+            Box::new(
+                RawWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
+                    || format!("reading the word list from given path '{}'", wordlist_path),
+                )?,
+            )
+        } else if let Some(word_list) = config.wordlist.contents() {
+            Box::new(
+                RawWordSelector::from_string(word_list.to_string()).with_context(|| {
+                    format!("reading the built-in word list {:?}", config.wordlist)
+                })?,
+            )
+        } else if let BuiltInWordlist::OS = config.wordlist {
+            Box::new(
+                RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH)).with_context(|| {
+                    format!(
+                        "reading from the OS wordlist at path '{}'. See https://en.wikipedia.org/wiki/Words_(Unix) for more info on this file and how it can be installed.",
+                        OS_WORDLIST_PATH
+                    )
+                })?,
+            )
+        } else {
+            // this should never happen!
+            // TODO: somehow enforce this at compile time?
+            return Err(ToipeError::from("Undefined word list or path.".to_owned()))?;
+        };
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
@@ -108,7 +122,7 @@ impl<'a> Toipe {
     ///
     /// Clears the screen, generates new words and displays them on the
     /// UI.
-    pub fn restart(&mut self) -> Result<(), ToipeError> {
+    pub fn restart(&mut self) -> Result<()> {
         self.tui.reset_screen()?;
 
         self.words = self.word_selector.new_words(self.config.num_words)?;
@@ -125,7 +139,7 @@ impl<'a> Toipe {
         Ok(())
     }
 
-    fn show_words(&mut self) -> Result<(), ToipeError> {
+    fn show_words(&mut self) -> Result<()> {
         self.text = self.tui.display_words(&self.words)?;
         Ok(())
     }
@@ -137,7 +151,7 @@ impl<'a> Toipe {
     /// If the test completes successfully, returns a boolean indicating
     /// whether the user wants to do another test and the
     /// [`ToipeResults`] for this test.
-    pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults), ToipeError> {
+    pub fn test(&mut self, stdin: StdinLock<'a>) -> Result<(bool, ToipeResults)> {
         let mut input = Vec::<char>::new();
         let original_text = self
             .text
@@ -174,7 +188,7 @@ impl<'a> Toipe {
             }
         }
 
-        let mut process_key = |key: Key| -> Result<TestStatus, ToipeError> {
+        let mut process_key = |key: Key| -> Result<TestStatus> {
             match key {
                 Key::Ctrl('c') => {
                     return Ok(TestStatus::Quit);
@@ -287,7 +301,7 @@ impl<'a> Toipe {
         &mut self,
         results: ToipeResults,
         mut keys: Keys<StdinLock>,
-    ) -> Result<bool, ToipeError> {
+    ) -> Result<bool> {
         self.tui.reset_screen()?;
 
         self.tui.display_lines::<&[Text], _>(&[

@@ -14,7 +14,7 @@ flate!(static TOP_MISSPELLED: str   from "src/word_lists/commonly_misspelled");
 /// Word lists with top English words.
 ///
 /// See [variants](#variants) for details on each word list.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum, Debug)]
 pub enum BuiltInWordlist {
     /// Source: [wordfrequency.info](https://www.wordfrequency.info/samples.asp) (top 60K lemmas sample).
     Top250,

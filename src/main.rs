@@ -1,10 +1,11 @@
+use anyhow::Result;
 use clap::StructOpt;
+
 use std::io::stdin;
 use toipe::config::ToipeConfig;
 use toipe::Toipe;
-use toipe::ToipeError;
 
-fn main() -> Result<(), ToipeError> {
+fn main() -> Result<()> {
     let config = ToipeConfig::parse();
 
     let mut toipe = Toipe::new(config)?;
