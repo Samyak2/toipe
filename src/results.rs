@@ -106,11 +106,7 @@ mod tests {
             max_ulps = max_ulps
         );
         // nothing typed
-        assert_ulps_eq!(
-            get_toipe_results(0, 0).accuracy(),
-            0.0,
-            max_ulps = max_ulps
-        );
+        assert_ulps_eq!(get_toipe_results(0, 0).accuracy(), 0.0, max_ulps = max_ulps);
         // all wrong
         assert_ulps_eq!(
             get_toipe_results(100, 100).accuracy(),
@@ -129,5 +125,80 @@ mod tests {
             -0.5,
             max_ulps = max_ulps
         );
+    }
+
+    #[test]
+    fn wpm() {
+        fn get_toipe_results(
+            final_chars_typed_correctly: usize,
+            final_uncorrected_errors: usize,
+            duration: f64,
+        ) -> ToipeResults {
+            let started_at = Instant::now();
+            let seconds = duration.round();
+            let nanoseconds = (duration - seconds) * 1_000_000_000.0;
+            let ended_at = started_at + Duration::new(seconds as u64, nanoseconds as u32);
+            ToipeResults {
+                total_words: 0,
+                total_chars_typed: 0,
+                total_chars_in_text: 0,
+                total_char_errors: 0,
+                final_chars_typed_correctly,
+                final_uncorrected_errors,
+                started_at,
+                ended_at,
+            }
+        }
+
+        let max_ulps = 1;
+        assert_ulps_eq!(
+            get_toipe_results(100, 5, 30.0).wpm(),
+            30.0,
+            max_ulps = max_ulps
+        );
+        assert_ulps_eq!(
+            get_toipe_results(1000, 50, 30.0).wpm(),
+            300.0,
+            max_ulps = max_ulps
+        );
+        assert_ulps_eq!(
+            get_toipe_results(200, 0, 30.0).wpm(),
+            80.0,
+            max_ulps = max_ulps
+        );
+        assert_ulps_eq!(
+            get_toipe_results(200, 30, 30.0).wpm(),
+            20.0,
+            max_ulps = max_ulps
+        );
+        // too many errors - cancels out
+        assert_ulps_eq!(
+            get_toipe_results(200, 40, 30.0).wpm(),
+            0.0,
+            max_ulps = max_ulps
+        );
+        // no negative wpms
+        assert_ulps_eq!(
+            get_toipe_results(200, 50, 30.0).wpm(),
+            0.0,
+            max_ulps = max_ulps
+        );
+        assert_ulps_eq!(
+            get_toipe_results(1, 0, 1.0).wpm(),
+            12.0,
+            max_ulps = max_ulps
+        );
+        // skdlhaslkd won't give you any score!
+        assert_ulps_eq!(
+            get_toipe_results(0, 10, 1.0).wpm(),
+            0.0,
+            max_ulps = max_ulps
+        );
+        assert_ulps_eq!(
+            get_toipe_results(0, 0, 0.01).wpm(),
+            0.0,
+            max_ulps = max_ulps
+        );
+        // we don't consider the case of duration = 0 because that seems impossible
     }
 }
