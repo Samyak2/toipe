@@ -82,7 +82,7 @@ impl<'a> Toipe {
                 RawWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
                     || {
                         format!(
-                            "Error reading the word list from given path '{}'",
+                            "reading the word list from given path '{}'",
                             wordlist_path
                         )
                     },
@@ -91,14 +91,14 @@ impl<'a> Toipe {
         } else if let Some(word_list) = config.wordlist.contents() {
             Box::new(
                 RawWordSelector::from_string(word_list.to_string()).with_context(|| {
-                    format!("Error reading the built-in word list {:?}", config.wordlist)
+                    format!("reading the built-in word list {:?}", config.wordlist)
                 })?,
             )
         } else if let BuiltInWordlist::OS = config.wordlist {
             Box::new(
                 RawWordSelector::from_path(PathBuf::from(OS_WORDLIST_PATH)).with_context(|| {
                     format!(
-                        "Error reading from the OS wordlist at path '{}'",
+                        "reading from the OS wordlist at path '{}'",
                         OS_WORDLIST_PATH
                     )
                 })?,
