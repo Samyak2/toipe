@@ -42,6 +42,7 @@ pub struct Toipe {
 /// Represents any error caught in Toipe.
 #[derive(Debug)]
 pub struct ToipeError {
+    /// Error message. Should not start with "error" or similar.
     pub msg: String,
 }
 
