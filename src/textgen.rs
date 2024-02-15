@@ -3,8 +3,10 @@
 
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
+use std::iter::{empty, once};
 use std::path::PathBuf;
 
+use rand::seq::SliceRandom;
 use rand::Rng;
 
 use bisection::bisect_right;
@@ -245,6 +247,69 @@ impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
 
         word.make_ascii_lowercase();
 
+        Ok(word)
+    }
+}
+
+/// Wraps another word selector, taking words from it and sometimes adding punctuation to the end
+/// of or around words. Will capitalize the next word when needed.
+pub struct PunctuatedWordSelector {
+    selector: Box<dyn WordSelector>,
+    next_is_capital: bool,
+    chance_of_punctuation: f64,
+}
+
+enum PunctuationType {
+    Capitaizing(char),
+    Ending(char),
+    Surrounding(char, char),
+}
+
+const PUNCTUATION: [PunctuationType; 12] = [
+    PunctuationType::Capitaizing('!'),
+    PunctuationType::Capitaizing('?'),
+    PunctuationType::Capitaizing('.'),
+    PunctuationType::Ending(','),
+    PunctuationType::Ending(':'),
+    PunctuationType::Ending(';'),
+    PunctuationType::Surrounding('\'', '\''),
+    PunctuationType::Surrounding('"', '"'),
+    PunctuationType::Surrounding('(', ')'),
+    PunctuationType::Surrounding('{', '}'),
+    PunctuationType::Surrounding('<', '>'),
+    PunctuationType::Surrounding('[', ']'),
+];
+
+impl WordSelector for PunctuatedWordSelector {
+    fn new_word(&mut self) -> Result<String, io::Error> {
+        let mut rng = rand::thread_rng();
+
+        let mut word = self.selector.new_word()?;
+
+        let will_punctuate = rng.gen_bool(self.chance_of_punctuation);
+        if will_punctuate || self.next_is_capital {
+            let mut chars: Box<dyn Iterator<Item = char>> = Box::new(word.chars());
+            if self.next_is_capital {
+                chars = match chars.next() {
+                    Some(c) => Box::new(c.to_uppercase().chain(chars)),
+                    None => Box::new(empty()),
+                }
+            }
+            if will_punctuate {
+                chars = match PUNCTUATION
+                    .choose(&mut rng)
+                    .expect("only returns none if the slice is empty")
+                {
+                    PunctuationType::Capitaizing(c) => {
+                        self.next_is_capital = true;
+                        Box::new(chars.chain(once(*c)))
+                    }
+                    PunctuationType::Ending(c) =>  Box::new(chars.chain(once(*c))),
+                    PunctuationType::Surrounding(opening, closing) => Box::new(once(*opening).chain(chars).chain(once(*closing))),
+                }
+            }
+            word = chars.collect();
+        }
         Ok(word)
     }
 }
