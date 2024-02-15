@@ -30,6 +30,9 @@ pub struct ToipeConfig {
     /// Number of words to show on each test.
     #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
+    /// Whether to include punctuation
+    #[clap(short, long)]
+    pub punctuation: bool,
 }
 
 impl ToipeConfig {

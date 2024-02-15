@@ -282,15 +282,17 @@ const PUNCTUATION: [PunctuationType; 12] = [
 ];
 
 impl PunctuatedWordSelector {
+    /// Creates a PunctuatedWordSelector from another WordSelector, allowing the selection of the
+    /// chance of punctuation.
     pub fn from_word_selector(
         word_selector: Box<dyn WordSelector>,
         punctuation_chance: f64,
-    ) -> Result<Self, io::Error> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             selector: word_selector,
-            next_is_capital: false,
+            next_is_capital: true,
             punctuation_chance,
-        })
+        }
     }
 }
 

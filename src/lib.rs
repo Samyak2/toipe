@@ -24,7 +24,7 @@ use config::ToipeConfig;
 use results::ToipeResults;
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
-use textgen::{RawWordSelector, WordSelector};
+use textgen::{PunctuatedWordSelector, RawWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
 use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
 
@@ -76,7 +76,7 @@ impl<'a> Toipe {
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self> {
-        let word_selector: Box<dyn WordSelector> = if let Some(wordlist_path) =
+        let mut word_selector: Box<dyn WordSelector> = if let Some(wordlist_path) =
             config.wordlist_file.clone()
         {
             Box::new(
@@ -104,6 +104,10 @@ impl<'a> Toipe {
             // TODO: somehow enforce this at compile time?
             return Err(ToipeError::from("Undefined word list or path.".to_owned()))?;
         };
+
+        if config.punctuation {
+            word_selector = Box::new(PunctuatedWordSelector::from_word_selector(word_selector, 0.15))
+        }
 
         let mut toipe = Toipe {
             tui: ToipeTui::new(),
