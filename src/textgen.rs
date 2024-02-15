@@ -251,12 +251,13 @@ impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
     }
 }
 
-/// Wraps another word selector, taking words from it and sometimes adding punctuation to the end
-/// of or around words. Will capitalize the next word when needed.
+/// Wraps another word selector, taking words from it and adding punctuation to the end of or
+/// around words with a configurable chance. Will capitalize the next word when an end-of-sentence
+/// punctuation mark is used.
 pub struct PunctuatedWordSelector {
     selector: Box<dyn WordSelector>,
     next_is_capital: bool,
-    chance_of_punctuation: f64,
+    punctuation_chance: f64,
 }
 
 enum PunctuationType {
@@ -280,13 +281,26 @@ const PUNCTUATION: [PunctuationType; 12] = [
     PunctuationType::Surrounding('[', ']'),
 ];
 
+impl PunctuatedWordSelector {
+    pub fn from_word_selector(
+        word_selector: Box<dyn WordSelector>,
+        punctuation_chance: f64,
+    ) -> Result<Self, io::Error> {
+        Ok(Self {
+            selector: word_selector,
+            next_is_capital: false,
+            punctuation_chance,
+        })
+    }
+}
+
 impl WordSelector for PunctuatedWordSelector {
     fn new_word(&mut self) -> Result<String, io::Error> {
         let mut rng = rand::thread_rng();
 
         let mut word = self.selector.new_word()?;
 
-        let will_punctuate = rng.gen_bool(self.chance_of_punctuation);
+        let will_punctuate = rng.gen_bool(self.punctuation_chance);
         if will_punctuate || self.next_is_capital {
             let mut chars: VecDeque<char> = word.chars().collect();
             if self.next_is_capital {
@@ -294,7 +308,7 @@ impl WordSelector for PunctuatedWordSelector {
                 for c in chars.pop_front().expect("got empty word").to_uppercase() {
                     chars.push_front(c)
                 }
-                self.next_is_capital=false;
+                self.next_is_capital = false;
             }
             if will_punctuate {
                 match PUNCTUATION
