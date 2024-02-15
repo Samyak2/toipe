@@ -1,9 +1,9 @@
 //! Utilities for generating/selecting new (random) words for the typing
 //! test.
 
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
-use std::iter::{empty, once};
 use std::path::PathBuf;
 
 use rand::seq::SliceRandom;
@@ -288,27 +288,31 @@ impl WordSelector for PunctuatedWordSelector {
 
         let will_punctuate = rng.gen_bool(self.chance_of_punctuation);
         if will_punctuate || self.next_is_capital {
-            let mut chars: Box<dyn Iterator<Item = char>> = Box::new(word.chars());
+            let mut chars: VecDeque<char> = word.chars().collect();
             if self.next_is_capital {
-                chars = match chars.next() {
-                    Some(c) => Box::new(c.to_uppercase().chain(chars)),
-                    None => Box::new(empty()),
+                // some unicode chars map to multiple chars when uppercased.
+                for c in chars.pop_front().expect("got empty word").to_uppercase() {
+                    chars.push_front(c)
                 }
+                self.next_is_capital=false;
             }
             if will_punctuate {
-                chars = match PUNCTUATION
+                match PUNCTUATION
                     .choose(&mut rng)
                     .expect("only returns none if the slice is empty")
                 {
                     PunctuationType::Capitaizing(c) => {
                         self.next_is_capital = true;
-                        Box::new(chars.chain(once(*c)))
+                        chars.push_back(*c)
                     }
-                    PunctuationType::Ending(c) =>  Box::new(chars.chain(once(*c))),
-                    PunctuationType::Surrounding(opening, closing) => Box::new(once(*opening).chain(chars).chain(once(*closing))),
+                    PunctuationType::Ending(c) => chars.push_back(*c),
+                    PunctuationType::Surrounding(opening, closing) => {
+                        chars.push_front(*opening);
+                        chars.push_back(*closing);
+                    }
                 }
             }
-            word = chars.collect();
+            word = chars.into_iter().collect();
         }
         Ok(word)
     }
