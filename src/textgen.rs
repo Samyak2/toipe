@@ -307,7 +307,7 @@ impl WordSelector for PunctuatedWordSelector {
             let mut chars: VecDeque<char> = word.chars().collect();
             if self.next_is_capital {
                 // some unicode chars map to multiple chars when uppercased.
-                for c in chars.pop_front().expect("got empty word").to_uppercase() {
+                for c in chars.pop_front().expect("got empty word").to_uppercase().rev() {
                     chars.push_front(c)
                 }
                 self.next_is_capital = false;
