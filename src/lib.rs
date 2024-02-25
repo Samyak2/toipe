@@ -106,7 +106,10 @@ impl<'a> Toipe {
         };
 
         if config.punctuation {
-            word_selector = Box::new(PunctuatedWordSelector::from_word_selector(word_selector, 0.15))
+            word_selector = Box::new(PunctuatedWordSelector::from_word_selector(
+                word_selector,
+                0.15,
+            ))
         }
 
         let mut toipe = Toipe {
