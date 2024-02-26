@@ -1,10 +1,12 @@
 //! Utilities for generating/selecting new (random) words for the typing
 //! test.
 
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
 use std::path::PathBuf;
 
+use rand::seq::SliceRandom;
 use rand::Rng;
 
 use bisection::bisect_right;
@@ -245,6 +247,94 @@ impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
 
         word.make_ascii_lowercase();
 
+        Ok(word)
+    }
+}
+
+/// Wraps another word selector, taking words from it and adding punctuation to the end of or
+/// around words with a configurable chance. Will capitalize the next word when an end-of-sentence
+/// punctuation mark is used.
+pub struct PunctuatedWordSelector {
+    selector: Box<dyn WordSelector>,
+    next_is_capital: bool,
+    punctuation_chance: f64,
+}
+
+enum PunctuationType {
+    Capitaizing(char),
+    Ending(char),
+    Surrounding(char, char),
+}
+
+const PUNCTUATION: [PunctuationType; 12] = [
+    PunctuationType::Capitaizing('!'),
+    PunctuationType::Capitaizing('?'),
+    PunctuationType::Capitaizing('.'),
+    PunctuationType::Ending(','),
+    PunctuationType::Ending(':'),
+    PunctuationType::Ending(';'),
+    PunctuationType::Surrounding('\'', '\''),
+    PunctuationType::Surrounding('"', '"'),
+    PunctuationType::Surrounding('(', ')'),
+    PunctuationType::Surrounding('{', '}'),
+    PunctuationType::Surrounding('<', '>'),
+    PunctuationType::Surrounding('[', ']'),
+];
+
+impl PunctuatedWordSelector {
+    /// Creates a PunctuatedWordSelector from another WordSelector, allowing the selection of the
+    /// chance of punctuation.
+    pub fn from_word_selector(
+        word_selector: Box<dyn WordSelector>,
+        punctuation_chance: f64,
+    ) -> Self {
+        Self {
+            selector: word_selector,
+            next_is_capital: true,
+            punctuation_chance,
+        }
+    }
+}
+
+impl WordSelector for PunctuatedWordSelector {
+    fn new_word(&mut self) -> Result<String, io::Error> {
+        let mut rng = rand::thread_rng();
+
+        let mut word = self.selector.new_word()?;
+
+        let will_punctuate = rng.gen_bool(self.punctuation_chance);
+        if will_punctuate || self.next_is_capital {
+            let mut chars: VecDeque<char> = word.chars().collect();
+            if self.next_is_capital {
+                // some unicode chars map to multiple chars when uppercased.
+                for c in chars
+                    .pop_front()
+                    .expect("got empty word")
+                    .to_uppercase()
+                    .rev()
+                {
+                    chars.push_front(c)
+                }
+                self.next_is_capital = false;
+            }
+            if will_punctuate {
+                match PUNCTUATION
+                    .choose(&mut rng)
+                    .expect("only returns none if the slice is empty")
+                {
+                    PunctuationType::Capitaizing(c) => {
+                        self.next_is_capital = true;
+                        chars.push_back(*c)
+                    }
+                    PunctuationType::Ending(c) => chars.push_back(*c),
+                    PunctuationType::Surrounding(opening, closing) => {
+                        chars.push_front(*opening);
+                        chars.push_back(*closing);
+                    }
+                }
+            }
+            word = chars.into_iter().collect();
+        }
         Ok(word)
     }
 }
