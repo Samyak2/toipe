@@ -11,14 +11,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: "clippy,rustfmt"
+    - uses: Swatinem/rust-cache@v2
     - name: Check
       run: cargo check --verbose
     - name: Run tests
       run: cargo test --verbose
+      if: success() || failure()
     - name: Format
       run: cargo fmt --check
+      if: success() || failure()
     - name: Run Clippy
       run: cargo clippy -- -D warnings
+      if: success() || failure()
     - name: Check word lists
       run: ./scripts/check_word_lists.sh
+      if: success() || failure()
