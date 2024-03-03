@@ -77,6 +77,14 @@ You can provide your own word list too (Note: the word list must meet [these ass
 toipe -f /path/to/word/list
 ```
 
+## Add punctuation to test
+
+By default, only lowercase words are shown. To add punctuation and sentence case, use the `-p` flag:
+
+```
+toipe -p
+```
+
 # Platform support
 
 - toipe was only tested on Linux and Mac OS. If you find any problems, please [open an issue](https://github.com/Samyak2/toipe/issues).

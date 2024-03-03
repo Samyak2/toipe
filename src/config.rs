@@ -31,9 +31,15 @@ pub struct ToipeConfig {
     #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
 
+
     /// Read full text sequentially
     #[clap(short = 's', long = "sequential", conflicts_with = "wordlist")]
     pub use_sequential_words: bool,
+  
+    /// Whether to include punctuation
+    #[clap(short, long)]
+    pub punctuation: bool,
+
 }
 
 impl ToipeConfig {
