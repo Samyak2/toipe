@@ -30,6 +30,10 @@ pub struct ToipeConfig {
     /// Number of words to show on each test.
     #[clap(short, long, default_value_t = 30)]
     pub num_words: usize,
+
+    /// Read full text sequentially
+    #[clap(short = 's', long = "sequential", conflicts_with = "wordlist")]
+    pub use_sequential_words: bool,
 }
 
 impl ToipeConfig {

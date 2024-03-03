@@ -24,7 +24,7 @@ use config::ToipeConfig;
 use results::ToipeResults;
 use termion::input::Keys;
 use termion::{color, event::Key, input::TermRead};
-use textgen::{RawWordSelector, WordSelector};
+use textgen::{RawWordSelector, SequentialFileWordSelector, WordSelector};
 use tui::{Text, ToipeTui};
 use wordlists::{BuiltInWordlist, OS_WORDLIST_PATH};
 
@@ -76,9 +76,16 @@ impl<'a> Toipe {
     /// Initializes the word selector.
     /// Also invokes [`Toipe::restart()`].
     pub fn new(config: ToipeConfig) -> Result<Self> {
-        let word_selector: Box<dyn WordSelector> = if let Some(wordlist_path) =
-            config.wordlist_file.clone()
-        {
+        let word_selector: Box<dyn WordSelector> = if config.use_sequential_words {
+            if let Some(wordlist_path) = config.wordlist_file.clone() {
+                Box::new(
+                    SequentialFileWordSelector::from_path(PathBuf::from(wordlist_path))
+                        .with_context(|| format!("reading words from path"))?,
+                )
+            } else {
+                return Err(ToipeError::from("Undefined path.".to_owned()))?;
+            }
+        } else if let Some(wordlist_path) = config.wordlist_file.clone() {
             Box::new(
                 RawWordSelector::from_path(PathBuf::from(wordlist_path.clone())).with_context(
                     || format!("reading the word list from given path '{}'", wordlist_path),

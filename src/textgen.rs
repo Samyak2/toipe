@@ -1,6 +1,7 @@
 //! Utilities for generating/selecting new (random) words for the typing
 //! test.
 
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Seek, SeekFrom};
 use std::path::PathBuf;
@@ -246,5 +247,40 @@ impl<T: Seek + io::Read> WordSelector for RawWordSelector<T> {
         word.make_ascii_lowercase();
 
         Ok(word)
+    }
+}
+
+pub struct SequentialFileWordSelector {
+    words: VecDeque<String>,
+}
+
+impl SequentialFileWordSelector {
+    pub fn from_path(path: PathBuf) -> Result<Self, io::Error> {
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+        let words: VecDeque<String> = reader
+            .lines()
+            .filter_map(|line| line.ok())
+            .flat_map(|line| {
+                let words: Vec<String> = line.split_whitespace().map(String::from).collect();
+                words.into_iter().filter(|word| {
+                    word.chars()
+                        .all(|c| c.is_ascii() && c.is_alphanumeric() && c.is_ascii_graphic())
+                })
+            })
+            .collect();
+        Ok(Self { words })
+    }
+}
+
+impl WordSelector for SequentialFileWordSelector {
+    fn new_word(&mut self) -> Result<String, io::Error> {
+        match self.words.pop_front() {
+            Some(word) => Ok(word),
+            None => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "No more words available",
+            )),
+        }
     }
 }
